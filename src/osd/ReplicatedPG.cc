@@ -9560,8 +9560,7 @@ void ReplicatedPG::do_update_log_missing(OpRequestRef &op)
   append_log_entries_update_missing(m->entries, t);
   // TODO FIX
 
-  t.register_on_commit(
-    new FunctionContext(
+  Context *c = new FunctionContext(
       [=](int) {
 	MOSDPGUpdateLogMissing *msg =
 	  static_cast<MOSDPGUpdateLogMissing*>(
@@ -9574,7 +9573,15 @@ void ReplicatedPG::do_update_log_missing(OpRequestRef &op)
 	    msg->get_tid());
 	reply->set_priority(CEPH_MSG_PRIO_HIGH);
 	msg->get_connection()->send_message(reply);
-      }));
+      });
+
+  /* Hack to work around the fact that ReplicatedBackend sends
+   * ack+commit if commit happens first */
+  if (pool.info.ec_pool()) {
+    t->register_on_complete(c);
+  } else {
+    t->register_on_commit(c);
+  }
   int tr = osd->store->queue_transaction(
     osr.get(),
     std::move(t),
