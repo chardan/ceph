@@ -9578,9 +9578,9 @@ void ReplicatedPG::do_update_log_missing(OpRequestRef &op)
   /* Hack to work around the fact that ReplicatedBackend sends
    * ack+commit if commit happens first */
   if (pool.info.ec_pool()) {
-    t->register_on_complete(c);
+    t.register_on_complete(c);
   } else {
-    t->register_on_commit(c);
+    t.register_on_commit(c);
   }
   int tr = osd->store->queue_transaction(
     osr.get(),
