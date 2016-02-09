@@ -8518,6 +8518,8 @@ void ReplicatedPG::submit_log_entries(
       m->log.log = entries;
       m->log.tail = old_last_update;
       m->log.head = info.last_update;
+      osd->send_message_osd_cluster(
+	peer.osd, m, get_osdmap()->get_epoch());
     }
   }
   if (get_osdmap()->test_flag(CEPH_OSDMAP_REQUIRE_JEWEL)) {
