@@ -9638,7 +9638,6 @@ void ReplicatedPG::mark_all_unfound_lost(
   list<pg_log_entry_t> log_entries;
 
   utime_t mtime = ceph_clock_now(cct);
-  info.last_update.epoch = get_osdmap()->get_epoch();
   map<hobject_t, pg_missing_t::item, hobject_t::ComparatorWithDefault>::const_iterator m =
     missing_loc.get_needs_recovery().begin();
   map<hobject_t, pg_missing_t::item, hobject_t::ComparatorWithDefault>::const_iterator mend =
@@ -9646,6 +9645,7 @@ void ReplicatedPG::mark_all_unfound_lost(
 
   ObcLockManager manager;
   eversion_t v = info.last_update;
+  v.epoch = get_osdmap()->get_epoch();
   unsigned num_unfound = missing_loc.num_unfound();
   while (m != mend) {
     const hobject_t &oid(m->first);
