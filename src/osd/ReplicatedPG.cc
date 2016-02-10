@@ -8746,11 +8746,12 @@ void ReplicatedPG::handle_watch_timeout(WatchRef watch)
     ctx->log.back().mod_desc.mark_unrollbackable();
   }
 
-  // no ctx->delta_stats
-  simple_opc_submit(std::move(ctx));
 
   // apply new object state.
   ctx->obc->obs = ctx->new_obs;
+
+  // no ctx->delta_stats
+  simple_opc_submit(std::move(ctx));
 }
 
 ObjectContextRef ReplicatedPG::create_object_context(const object_info_t& oi,
