@@ -1175,6 +1175,11 @@ if(${WITH_RADOSGW})
 
   include_directories("${CMAKE_SOURCE_DIR}/src/civetweb/include")
 
+  set(civetweb_common_files civetweb/src/civetweb.c)
+  add_library(civetweb_common_objs OBJECT ${civetweb_common_files})
+  set_property(TARGET civetweb_common_objs
+	       APPEND PROPERTY COMPILE_DEFINITIONS NO_SSL_DL=1)
+
   set(radosgw_srcs
     rgw/rgw_resolve.cc
     rgw/rgw_rest.cc
@@ -1195,7 +1200,6 @@ if(${WITH_RADOSGW})
     rgw/rgw_loadgen.cc
     rgw/rgw_civetweb.cc
     rgw/rgw_civetweb_log.cc
-    civetweb/src/civetweb.c
     rgw/rgw_main.cc)
 
   set(radosgw_admin_srcs
@@ -1205,12 +1209,13 @@ if(${WITH_RADOSGW})
   set(radosgw_object_expirer_srcs
     rgw/rgw_object_expirer.cc)
 
-  add_executable(radosgw ${radosgw_srcs} $<TARGET_OBJECTS:heap_profiler_objs>)
+  add_executable(radosgw ${radosgw_srcs} $<TARGET_OBJECTS:civetweb_common_objs>
+		 $<TARGET_OBJECTS:heap_profiler_objs>)
   target_link_libraries(radosgw rgw_a librados
     cls_rgw_client cls_lock_client cls_refcount_client
     cls_log_client cls_statelog_client cls_timeindex_client
     cls_version_client cls_replica_log_client cls_user_client
-    curl expat global fcgi resolv ${BLKID_LIBRARIES} ${ALLOC_LIBS})
+    curl expat global fcgi resolv ssl crypto ${BLKID_LIBRARIES} ${ALLOC_LIBS})
   install(TARGETS radosgw DESTINATION bin)
 
   add_executable(radosgw-admin ${radosgw_admin_srcs} $<TARGET_OBJECTS:heap_profiler_objs>)
@@ -1218,7 +1223,7 @@ if(${WITH_RADOSGW})
     cls_rgw_client cls_lock_client cls_refcount_client
     cls_log_client cls_statelog_client cls_timeindex_client
     cls_version_client cls_replica_log_client cls_user_client
-    curl expat global fcgi resolv ${BLKID_LIBRARIES} ${ALLOC_LIBS})
+    curl expat global fcgi resolv ssl crypto ${BLKID_LIBRARIES} ${ALLOC_LIBS})
   install(TARGETS radosgw-admin DESTINATION bin)
 
   add_executable(radosgw-object-expirer ${radosgw_object_expirer_srcs} $<TARGET_OBJECTS:heap_profiler_objs>)
