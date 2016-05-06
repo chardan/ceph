@@ -22,7 +22,6 @@ generate and submit patches.
 We do not require assignment of copyright to contribute code; code is
 contributed under the terms of the applicable license.
 
-
 Build Prerequisites
 ===================
 
