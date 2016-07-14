@@ -81,4 +81,111 @@ void collect_sys_info(map<string, string> *m, CephContext *cct);
 /// @param type the service type of given @p services, for example @p osd or @p mon.
 void dump_services(Formatter* f, const map<string, list<int> >& services, const char* type);
 
+/* A mini-serialization utility for the format several librados facilities use. Note that it is
+not "complete"-- to encode binary data, you'd need something like uuencoding, though I have 
+provided hooks for a start (iterator interface hopefully will suffice), and a versioned 
+namespace so you can hack to your heart's content. It's hopefully resilient, if not especially 
+"fast": */
+namespace librados { namespace cutil { 
+inline namespace version_1_0 {
+
+// C++17 flavor std::size():
+// Adapted from: https://isocpp.org/files/papers/n4280.pdf
+namespace detail {
+
+template <typename C>
+constexpr auto size(const C& c) -> decltype(c.size())
+{
+ return c.size();
+}
+
+template <typename T, std::size_t N>
+constexpr std::size_t size(const T(&)[N]) noexcept
+{
+ return N;
+}
+
+} // namespace detail
+
+template <typename FwdIBegin, typename FwdIEnd>
+inline size_t encoded_size(FwdIBegin b, FwdIEnd e);
+
+template <typename FwdIBegin, typename FwdIEnd>
+inline size_t flatten_to_cstring(FwdIBegin b, const FwdIEnd e, const size_t out_size, char *out_buffer);
+
+template <typename SeqT>
+inline size_t flatten_to_cstring(const SeqT& xs, const size_t out_size, char *out_buffer);
+
+inline size_t encoded_size(const std::string& s)        
+{ 
+ return 1 + s.size(); 
+}
+
+template <typename T>
+inline size_t encoded_size(const std::vector<T>& xs)
+{
+ return encoded_size(std::begin(xs), std::end(xs));
+}
+
+template <typename FwdIBegin, typename FwdIEnd>
+inline size_t encoded_size(FwdIBegin b, const FwdIEnd e)
+{
+ using value_t = typename std::iterator_traits<FwdIBegin>::value_type;
+
+ return std::accumulate(b, e, 1,
+                        [](const int len, const value_t& x) { return len + librados::cutil::encoded_size(x); }); 
+}
+
+// Note that single characters are /not/ NULL-terminated in the output buffer (just like C):
+inline size_t flatten_to_cstring(const char c, const size_t out_size, char *out_buffer)
+{
+ if(1 > out_size) 
+  throw std::out_of_range("librados::cutil::flatten_to_cstring(), out_size");
+
+ return out_buffer[0] = c, 1;
+}
+
+inline size_t flatten_to_cstring(const int i, const size_t out_size, char *out_buffer)
+{
+ return flatten_to_cstring(std::to_string(i), out_size, out_buffer);
+}
+
+inline size_t flatten_to_cstring(const char *s, const size_t out_size, char *out_buffer)
+{
+ return flatten_to_cstring(s, strlen(s) + s, out_size, out_buffer);
+}
+
+template <typename SeqT>
+inline size_t flatten_to_cstring(const SeqT& xs, const size_t out_size, char *out_buffer) 
+{
+ if(out_size < 1 + detail::size(xs))
+  throw std::out_of_range("librados::cutil::flatten_to_cstring(), out_size");
+ 
+ auto bytes_written = flatten_to_cstring(std::begin(xs), std::end(xs), out_size, out_buffer);
+
+ return out_buffer[bytes_written++] = 0, bytes_written;
+}
+
+template <typename FwdIBegin, typename FwdIEnd>
+inline size_t flatten_to_cstring(FwdIBegin b, const FwdIEnd e, const size_t out_size, char *out_buffer)
+{
+ size_t bytes_written = 0;
+
+ using value_t = typename std::iterator_traits<FwdIBegin>::value_type;
+
+ std::for_each(b, e, [&](const value_t& x) {
+     bytes_written += flatten_to_cstring(x, out_size - bytes_written, out_buffer + bytes_written);
+ });
+
+ // We need room for the terminating NULL:
+ if(out_size < bytes_written)
+  throw std::out_of_range("librados::cutil::flatten_to_cstring(), out_size");
+
+ return out_buffer[bytes_written] = 0, bytes_written;
+}
+
+} // inline namespace version_1_0
+}} // namespace librados::cutil
+
+
 #endif /* CEPH_UTIL_H */
