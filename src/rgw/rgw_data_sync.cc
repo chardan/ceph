@@ -477,7 +477,7 @@ public:
     char buf[COOKIE_LEN + 1];
 
     gen_rand_alphanumeric(cct, buf, sizeof(buf) - 1);
-    cookie = buf;
+    string cookie = buf;
 
     sync_status_oid = RGWDataSyncStatusManager::sync_status_oid(sync_env->source_zone);
   }
@@ -2416,7 +2416,7 @@ class RGWBucketShardIncrementalSyncCR : public RGWCoroutine {
   boost::intrusive_ptr<RGWContinuousLeaseCR> lease_cr;
   list<rgw_bi_log_entry> list_result;
   list<rgw_bi_log_entry>::iterator entries_iter;
-  map<pair<string, string>, pair<real_time, RGWModifyOp> > squash_map;
+  map<string, pair<real_time, RGWModifyOp> > squash_map;
   rgw_bucket_shard_inc_sync_marker& inc_marker;
   rgw_obj_key key;
   rgw_bi_log_entry *entry{nullptr};
@@ -2476,8 +2476,11 @@ int RGWBucketShardIncrementalSyncCR::operate()
         if (e.state != CLS_RGW_STATE_COMPLETE) {
           continue;
         }
-        auto& squash_entry = squash_map[make_pair(e.object, e.instance)];
-        if (squash_entry.first <= e.timestamp) {
+        auto& squash_entry = squash_map[e.object];
+        if (squash_entry.first == e.timestamp &&
+            e.op == CLS_RGW_OP_DEL) {
+          squash_entry.second = e.op;
+        } else if (squash_entry.first < e.timestamp) {
           squash_entry = make_pair<>(e.timestamp, e.op);
         }
       }
@@ -2530,7 +2533,7 @@ int RGWBucketShardIncrementalSyncCR::operate()
           marker_tracker.try_update_high_marker(cur_id, 0, entry->timestamp);
           continue;
         }
-        if (make_pair<>(entry->timestamp, entry->op) != squash_map[make_pair(entry->object, entry->instance)]) {
+        if (make_pair<>(entry->timestamp, entry->op) != squash_map[entry->object]) {
           set_status() << "squashed operation, skipping";
           ldout(sync_env->cct, 20) << "[inc sync] skipping object: "
               << bucket_shard_str{bs} << "/" << key << ": squashed operation" << dendl;
@@ -2759,6 +2762,9 @@ int RGWBucketSyncStatusManager::init()
     return -EINVAL;
   }
 
+  async_rados = new RGWAsyncRadosProcessor(store, store->ctx()->_conf->rgw_num_async_rados_threads);
+  async_rados->start();
+
   int ret = http_manager.set_threaded();
   if (ret < 0) {
     ldout(store->ctx(), 0) << "failed in http_manager.set_threaded() ret=" << ret << dendl;
@@ -2788,8 +2794,6 @@ int RGWBucketSyncStatusManager::init()
   sync_module.reset(new RGWDefaultSyncModuleInstance());
 
   int effective_num_shards = (num_shards ? num_shards : 1);
-
-  auto async_rados = store->get_async_rados();
 
   for (int i = 0; i < effective_num_shards; i++) {
     RGWRemoteBucketLog *l = new RGWRemoteBucketLog(store, this, async_rados, &http_manager);
@@ -2942,7 +2946,7 @@ class DataLogTrimCR : public RGWCoroutine {
   RGWRados *store;
   RGWHTTPManager *http;
   const int num_shards;
-  const std::string& zone_id; //< my zone id
+  const std::string& zone; //< my zone id
   std::vector<rgw_data_sync_status> peer_status; //< sync status for each peer
   std::vector<rgw_data_sync_marker> min_shard_markers; //< min marker per shard
   std::vector<std::string>& last_trim; //< last trimmed marker per shard
@@ -2953,7 +2957,7 @@ class DataLogTrimCR : public RGWCoroutine {
                    int num_shards, std::vector<std::string>& last_trim)
     : RGWCoroutine(store->ctx()), store(store), http(http),
       num_shards(num_shards),
-      zone_id(store->get_zone().id),
+      zone(store->get_zone().id),
       peer_status(store->zone_conn_map.size()),
       min_shard_markers(num_shards),
       last_trim(last_trim)
@@ -2965,14 +2969,14 @@ class DataLogTrimCR : public RGWCoroutine {
 int DataLogTrimCR::operate()
 {
   reenter(this) {
-    ldout(cct, 10) << "fetching sync status for zone " << zone_id << dendl;
+    ldout(cct, 10) << "fetching sync status for zone " << zone << dendl;
     set_status("fetching sync status");
     yield {
       // query data sync status from each sync peer
       rgw_http_param_pair params[] = {
         { "type", "data" },
         { "status", nullptr },
-        { "source-zone", zone_id.c_str() },
+        { "source-zone", zone.c_str() },
         { nullptr, nullptr }
       };
 
