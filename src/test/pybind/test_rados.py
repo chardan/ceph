@@ -160,6 +160,17 @@ class TestRados(object):
         assert self.rados.pool_exists(u"\u9ec4")
         self.rados.delete_pool(poolname)
 
+    def test_list_conf(self):
+        conf_keys = None
+
+        assert_raises(TypeError, conf_keys = rados.conf_get_all_keys())
+
+        ok(None != conf_keys)
+      
+        # It's difficult to say what "success" means, but we should at least be able to
+        # find the "host" key. Not much of a test, but better than nothing:
+        ok("host" in conf_keys) 
+
     def test_pool_lookup_utf8(self):
         if _python2:
             poolname = u'\u9ec4'

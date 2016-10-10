@@ -130,6 +130,7 @@ cdef extern from "rados/librados.h" nogil:
     int rados_conf_parse_env(rados_t cluster, const char *var)
     int rados_conf_set(rados_t cluster, char *option, const char *value)
     int rados_conf_get(rados_t cluster, char *option, char *buf, size_t len)
+    int rados_conf_get_all_keys(rados_t cluster, char *buf, const size_t len, size_t *req_sz_out)
 
     int rados_ioctx_pool_stat(rados_ioctx_t io, rados_pool_stat_t *stats)
     int64_t rados_pool_lookup(rados_t cluster, const char *pool_name)
@@ -451,7 +452,6 @@ def cstr(val, name, encoding="utf-8", opt=False):
 def cstr_list(list_str, name, encoding="utf-8"):
     return [cstr(s, name) for s in list_str]
 
-
 def decode_cstr(val, encoding="utf-8"):
     """
     Decode a byte string into a Python string.
@@ -464,6 +464,16 @@ def decode_cstr(val, encoding="utf-8"):
 
     return val.decode(encoding)
 
+def cstring_to_list(cstring, slice_len):
+    """
+    Decode a cstring (NULL-delimited buffer) into a Python list.
+    Note: Handles one nesting layer only, does not process nested containers.
+
+    :param cstring: byte string
+    :param slice_len: length of slice to decode
+    """
+
+    return [cstr for cstr in decode_cstr(cstring[:slice_len]).split('\0') if cstring]
 
 cdef char* opt_str(s) except? NULL:
     if s is None:
@@ -712,6 +722,43 @@ Rados object in state %s." % self.state)
                     return None
                 else:
                     raise make_ex(ret, "error calling conf_get")
+        finally:
+            free(ret_buf)
+
+    def conf_get_all_keys(self):
+        """
+        Get a list of valid configuration keys
+
+        :returns: list - valid configuration keys, or None
+        :raises: :class:`TypeError`
+        """
+        self.require_state("configuring", "connected")
+        cdef:
+            size_t ret_buf_len = 1024*8
+            char *ret_buf      = NULL
+            size_t req_sz_out  = 0
+            int result         = -1
+
+        try:
+            while True:
+                ret_buf = <char *>realloc_chk(ret_buf, ret_buf_len)
+
+                with nogil:
+                    result = rados_conf_get_all_keys(self.cluster, ret_buf, ret_buf_len, &req_sz_out)
+
+                # Note that we trim the markers for "sequence" and "end":
+                if (0 == result):
+                    return cstring_to_list(ret_buf[:ret_buf_len - 2], ret_buf_len)
+
+                if (-errno.ERANGE == result):
+                    ret_buf_len = req_sz_out
+                    continue
+
+                if (-errno.EINVAL == result):
+                    raise make_ex(result, "invalid parameter")
+
+                raise make_ex(result, "invalid result from rados_conf_get_all_keys()")
+
         finally:
             free(ret_buf)
 
@@ -1019,7 +1066,7 @@ Rados object in state %s." % self.state)
                     break
                 else:
                     raise make_ex(ret, "error calling inconsistent_pg_list")
-            return [pg for pg in decode_cstr(pgs[:ret]).split('\0') if pg]
+            return cstring_to_list(pgs, ret) 
         finally:
             free(pgs)
 
