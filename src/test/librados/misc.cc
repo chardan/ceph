@@ -2,6 +2,7 @@
 // vim: ts=8 sw=2 smarttab
 #include "gtest/gtest.h"
 
+#include "include/util.h"
 #include "mds/mdstypes.h"
 #include "include/buffer.h"
 #include "include/rbd_types.h"
@@ -16,9 +17,20 @@
 #include "test/librados/TestCase.h"
 
 #include <errno.h>
-#include <map>
-#include <sstream>
+
 #include <string>
+#include <sstream>
+#include <iterator>
+
+#include <map>
+#include <set>
+#include <list>
+#include <array>
+#include <vector>
+#include <deque>
+#include <forward_list>
+#include <unordered_set>
+#include <unordered_map>
 
 using namespace librados;
 using std::map;
@@ -834,7 +846,388 @@ TEST_F(LibRadosMiscPP, CopyScrubPP) {
   }
 }
 
+// Helpers for testing flatten_to_cstring():
+namespace {
 
+char *reset_buffer(const size_t sz, char *buffer, const char marker_ch = '.')
+{
+ std::fill_n(buffer, sz, marker_ch);
+ return buffer;
+}
+
+template <typename SeqT>
+std::vector<int> to_ASCII(SeqT& xs)
+{
+ std::vector<int> ret;
+
+ std::transform(std::begin(xs), std::end(xs), std::back_inserter(ret),
+		[](const char c) { return static_cast<int>(c); });
+
+ return ret;
+}
+
+template <typename SeqT>
+std::vector<int> to_ASCII(SeqT& xs, const size_t n)
+{
+ std::vector<int> ret;
+
+ std::transform(std::begin(xs), n + std::begin(xs), std::back_inserter(ret),
+		[](const char c) { return static_cast<int>(c); });
+
+ return ret;
+}
+
+template <typename SeqT0, typename SeqT1>
+bool eq_ASCII(const SeqT0& lhs, const SeqT1& rhs)
+{
+ auto cnv = to_ASCII(rhs);
+
+ return std::equal(std::begin(lhs), std::end(lhs),
+                   std::begin(cnv));
+}
+
+template <typename SeqT0, typename SeqT1>
+bool eq_seq(const SeqT0& lhs, const SeqT1& rhs)
+{
+  return std::equal(std::begin(lhs), std::end(lhs),
+                    std::begin(rhs));
+}
+
+template <typename SeqT0, typename SeqT1>
+bool eq_flatten(const SeqT0& lhs, const SeqT1& rhs, const size_t out_buffer_sz = 32)
+{
+ vector<char> out_buffer(out_buffer_sz, '.');
+
+ librados::cutil::flatten_to_cstring(rhs, out_buffer_sz, &out_buffer[0]);
+
+ return eq_seq(lhs, out_buffer);
+}
+
+} // namespace
+
+TEST(LibRadosMiscCutil, Cutil) {
+
+  using std::equal;
+  using std::begin;
+ 
+  using librados::cutil::flatten_to_cstring;
+ 
+  char out_buffer[32] = {};
+  auto out_buffer_sz = sizeof(out_buffer);
+ 
+  {
+  const char *input = "hello";
+  const char expected_output[] = { 'h', 'e', 'l', 'l', 'o', 0 };
+
+  reset_buffer(out_buffer_sz, out_buffer);
+  auto result_code = flatten_to_cstring(input, out_buffer_sz, out_buffer);
+  EXPECT_EQ(sizeof(expected_output), result_code);
+  EXPECT_TRUE(eq_seq(expected_output, out_buffer));
+  }
+  
+  {
+  const std::string input = "hello";
+  const char expected_output[] = { 'h', 'e', 'l', 'l', 'o', 0 };
+  
+  reset_buffer(out_buffer_sz, out_buffer);
+  auto result_code = flatten_to_cstring(input, out_buffer_sz, out_buffer);
+  EXPECT_EQ(sizeof(expected_output), result_code);
+  EXPECT_TRUE(eq_seq(expected_output, out_buffer));
+  }
+  
+  {
+  const std::vector<std::string> input = { "hello", "world" };
+  const char expected_output[] = {
+					'h', 'e', 'l', 'l', 'o', 0,
+					'w', 'o', 'r', 'l', 'd', 0,
+					0	
+				 };
+
+  reset_buffer(out_buffer_sz, out_buffer);
+  auto result_code = flatten_to_cstring(input, out_buffer_sz, out_buffer);
+  EXPECT_EQ(sizeof(expected_output), result_code);
+  EXPECT_TRUE(eq_seq(expected_output, out_buffer));
+  }
+  
+  {
+   const array<string, 3> input	{ "", "hello", "" };
+   const char expected_output[]	= { 
+  					0, 
+  					'h', 'e', 'l', 'l', 'o', 0, 
+  					0,
+  					0
+  				  };
+  
+  reset_buffer(out_buffer_sz, out_buffer);
+  auto result_code = flatten_to_cstring(input, out_buffer_sz, out_buffer);
+  EXPECT_EQ(sizeof(expected_output), result_code);
+  EXPECT_TRUE(eq_seq(expected_output, out_buffer));
+  }
+
+  // Data for the next set of tests:
+  const char ch		    = '*';
+  const char marker_ch	    = '.';
+  const char s0[]            = "Hello";
+  const std::string s1       = "Hello";
+ 
+  const std::vector<char> xs0            = { 'H', 'e', 'l', 'l', 'o' };
+  const std::array<char, 6> xs0_enc_vals = { 'H', 'e', 'l', 'l', 'o', 0 };
+ 
+  const std::list<char>   xs1            = { 'W', 'o', 'r', 'l', 'd' };
+
+  // detail::size():
+  {
+  using librados::cutil::detail::size;
+ 
+  EXPECT_EQ(1 + strlen(s0), size(s0));
+  EXPECT_EQ(s1.size(), size(s1));
+  EXPECT_EQ(xs0.size(), size(xs0));
+  EXPECT_EQ(xs1.size(), size(xs1));
+  }
+ 
+  // encoded_size():
+  {
+  using librados::cutil::encoded_size;
+ 
+  const auto l = 1 + strlen(s0);
+ 
+  EXPECT_EQ(l, encoded_size(s0));
+  EXPECT_EQ(l, encoded_size(s1));
+  EXPECT_EQ(l, encoded_size(xs0));
+  EXPECT_EQ(l, encoded_size(xs1));
+ 
+  // Single characters should be size 1:
+  EXPECT_EQ(1, encoded_size('_'));
+  }
+ 
+  // flatten_to_cstring(): concrete primitives test
+  {
+ 
+ 	// char:
+  	{
+ 	reset_buffer(out_buffer_sz, out_buffer);
+ 
+ 	out_buffer[1] = marker_ch;
+ 
+  	const auto sz = flatten_to_cstring(ch, out_buffer_sz, out_buffer);
+ 
+ 	// Make sure we wrote the character and didn't append a NULL:
+  	EXPECT_EQ(1, sz);
+  	EXPECT_EQ(ch, out_buffer[0]);
+  	EXPECT_EQ(marker_ch, out_buffer[1]);
+ 	}
+ 
+ 	// const char*:
+ 	{
+ 	reset_buffer(out_buffer_sz, out_buffer);
+ 
+ 	const auto sz = flatten_to_cstring(s0, out_buffer_sz, out_buffer);
+ 	EXPECT_EQ(sz, librados::cutil::encoded_size(s0));
+ 
+ 	EXPECT_EQ(s0, std::string(out_buffer));
+ 
+ 	EXPECT_EQ(0, out_buffer[sz - 1]);
+ 	EXPECT_EQ(marker_ch, out_buffer[1 + sz]);
+ 	}
+ 
+ 	// vector<char>:
+ 	{
+ 	EXPECT_TRUE(eq_flatten(xs0_enc_vals, xs0));
+ 	}
+ 
+ 	// std::string:
+ 	{
+ 	EXPECT_TRUE(eq_flatten(xs0_enc_vals, s1));
+ 	}
+  }
+ 
+  // flatten_to_cstring(): edge cases (and make sure NULL goes in the right place):
+  {
+ 	// Encoding a single character shouldn't append NULL:
+ 	{
+ 	const char c0			= static_cast<char>(0);
+ 
+ 	reset_buffer(out_buffer_sz, out_buffer, '_');
+ 	flatten_to_cstring(c0, out_buffer_sz, out_buffer);
+ 	EXPECT_TRUE(static_cast<char>(0) == out_buffer[0]);
+ 	EXPECT_TRUE('_' == out_buffer[1]);
+ 	}
+ 
+ 	// Make sure that NULL characters are embedded even in the case of empty strings:
+ 	{
+         const string s0		          { "" };
+         const char s0_expect[] =          { 0 };
+         EXPECT_TRUE(eq_flatten(s0_expect, s0));
+         
+         const array<string, 1> xs0	  { "" };
+         const char xs0_expect[]	=         { 0 };
+         EXPECT_TRUE(eq_flatten(xs0_expect, xs0));
+         
+         const array<string, 2> xs1	  { "", "" };
+         const char xs1_expect[]	=         { 0, 0, 0 };
+         EXPECT_TRUE(eq_flatten(xs1_expect, xs1));
+         
+         const array<string, 3> xs2	  { "", "A", "" };
+         const char xs2_expect[]	=         { 0, 65, 0, 0 };
+         
+         EXPECT_TRUE(eq_flatten(xs2_expect, xs2));
+         
+         const array<string, 5> xs3	  { "", "A", "", "A", "" };
+         const char xs3_expect[]	=         { 0, 65, 0, 0, 65, 0, 0, 0 };
+         EXPECT_TRUE(eq_flatten(xs3_expect, xs3));
+ 	}
+  }
+ 
+  // flatten_to_cstring(): error handling
+  {
+ 	// Writing to a too-small buffer should throw:
+ 	{
+ 	const std::vector<char> big_data(1024, marker_ch);
+
+ 	char too_small[1];
+ 
+ 	bool ok = false;
+ 	try
+ 	 {
+ 		flatten_to_cstring(big_data, big_data.size(), too_small);
+ 	 }
+ 	catch(std::out_of_range& e)
+ 	 {
+ 		ok = true;
+  	 }
+ 	
+ 	EXPECT_TRUE(ok);	
+ 	}
+ 
+ 	// Writing to a too-small buffer should throw (paranoia: try with C array):
+ 	{
+ 	const char big_data[]   { 1, 2, 3, 4, 5 };
+ 	char too_small[]  { 0 };
+ 
+ 	bool ok = false;
+ 	try
+ 	 {
+ 		flatten_to_cstring(big_data, sizeof(too_small), too_small);
+ 	 }
+ 	catch(std::out_of_range& e)
+ 	 {
+ 		ok = true;
+  	 }
+ 	
+ 	EXPECT_TRUE(ok);	
+ 	}
+  }
+ 
+  // flatten_to_cstring(): other sequence types:
+  {
+  // ...not a lot of "testing" here, but they all should compile and do the right thing.
+  // Feel free to add more containers (could be accomplised with a type list):
+ 
+  const char out_expect[] = { 'x', 0, 'y', 0, 0 };
+ 
+  set<string>			ys0 { "x", "y" };
+  EXPECT_TRUE(eq_flatten(out_expect, ys0));
+ 
+  unordered_multiset<string> 	ys1 { "x", "y" }; 
+  EXPECT_TRUE(eq_flatten(out_expect, ys0));
+ 
+  list<string> 			ys2 { "x", "y" }; 
+  EXPECT_TRUE(eq_flatten(out_expect, ys0));
+ 
+  forward_list<string>		ys3 { "x", "y" }; 
+  EXPECT_TRUE(eq_flatten(out_expect, ys0));
+ 
+  deque<string>			ys4 { "x", "y" }; 
+  EXPECT_TRUE(eq_flatten(out_expect, ys0));
+ 
+  multiset<string>		ys5 { "x", "y" }; 
+  EXPECT_TRUE(eq_flatten(out_expect, ys0));
+ 
+  unordered_multiset<string>	ys6 { "x", "y" }; 
+  EXPECT_TRUE(eq_flatten(out_expect, ys0));
+  }
+}
+
+namespace detail {
+
+// quick-n-dirty RAII helper:
+struct rados_connection
+{
+ rados_t cluster = nullptr;
+
+ rados_connection()
+ {
+  // ...pretty much following along with the connection unit test, but Google Test
+  // hates being used outside the wrapper macros, so things are unchecked:
+  char *id = getenv("CEPH_CLIENT_ID");
+  if(id)
+   std::cerr << "Client id is: " << id << std::endl;
+
+  rados_create(&cluster, nullptr);
+  rados_conf_read_file(cluster, nullptr);
+  rados_conf_parse_env(cluster, nullptr);
+ }
+
+ ~rados_connection()
+ {
+  if(nullptr != cluster)
+   rados_shutdown(cluster);
+ }
+};
+
+} // ::detail
+
+TEST(LibRadosMiscConfGetAllKeys, ConfGetAllKeys) {
+
+  using std::begin; 
+  using std::end;
+  using std::search;
+
+  size_t request_size_out;
+
+  std::vector<char> output;
+
+  detail::rados_connection rc;
+
+  // Cluster pointer is nullptr:
+  auto result = rados_conf_get_all_keys(nullptr, &output[0], output.size(), &request_size_out);
+  EXPECT_EQ(-EINVAL, result);
+
+  // Output buffer is nullptr:
+  result = rados_conf_get_all_keys(rc.cluster, &output[0], output.size(), &request_size_out);
+  EXPECT_EQ(-EINVAL, result);
+
+  // The out-parameter is nullptr:
+  output.resize(1); 	// to avoid triggering buffer nullptr failure
+  result = rados_conf_get_all_keys(rc.cluster, &output[0], output.size(), nullptr);
+  EXPECT_EQ(-EINVAL, result);
+  
+  // Not enough space:
+  request_size_out = 0;		// this value should change after the call
+  output.resize(1);		// insufficient
+  result = rados_conf_get_all_keys(rc.cluster, &output[0], output.size(), &request_size_out);
+  EXPECT_EQ(-ERANGE, result);
+
+  // Make sure request_size_out was set:
+  EXPECT_GT(request_size_out, 0);  
+  output.resize(request_size_out);
+
+  // Try, try again:
+  result = rados_conf_get_all_keys(rc.cluster, &output[0], request_size_out, &request_size_out);
+
+  EXPECT_EQ(0, result);
+
+  // Sanity check: first byte shouldn't be NULL:
+  EXPECT_NE(NULL, output[0]);
+
+  // Look for at least one known key (I tried to choose one that isn't likely to vanish):
+  const vector<char> known_key { 'h', 'o', 's', 't', NULL };
+
+  auto match_iter = search(begin(output), end(output),
+	 	           begin(known_key), end(known_key));
+
+  EXPECT_NE(end(output), match_iter);
+}
 
 int main(int argc, char **argv)
 {

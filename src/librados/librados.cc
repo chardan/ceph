@@ -2780,6 +2780,38 @@ extern "C" int rados_conf_get(rados_t cluster, const char *option, char *buf, si
   return retval;
 }
 
+extern "C" int rados_conf_get_all_keys(rados_t cluster, char *buf, const size_t len, size_t *req_sz_out)
+{
+ std::vector<std::string> keys;
+
+ try
+  {
+       auto client = static_cast<librados::RadosClient *>(cluster);
+    
+        if(nullptr == client || nullptr == buf || nullptr == req_sz_out)
+         return -EINVAL;
+
+        client->cct->_conf->get_all_keys(&keys);
+
+        if(len < librados::cutil::flatten_to_cstring(keys, len, buf))
+        {
+               *req_sz_out = librados::cutil::encoded_size(keys);
+               return -ERANGE;
+        }
+
+        return 0;
+  }
+ catch(std::invalid_argument& e)
+  {
+        return -EINVAL;
+  }
+ catch(std::out_of_range& e)
+  {
+        *req_sz_out = librados::cutil::encoded_size(keys);
+        return -ERANGE;
+  }
+}
+
 extern "C" int64_t rados_pool_lookup(rados_t cluster, const char *name)
 {
   tracepoint(librados, rados_pool_lookup_enter, cluster, name);

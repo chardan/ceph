@@ -547,6 +547,30 @@ CEPH_RADOS_API int rados_conf_set(rados_t cluster, const char *option,
 CEPH_RADOS_API int rados_conf_get(rados_t cluster, const char *option,
                                   char *buf, size_t len);
 
+/**
+ * Get a list of configuration option key names 
+ *
+ * Gets a list of configuration option key names as NULL-terminated strings.  
+ * The option names will be placed in the supplied buffer one after another.
+ * After the last option name, there will be two 0 bytes in a row (one to signal
+ * end-of-sequence, another end-of-buffer).
+ *
+ * If len is less than the space required to fill the buffer, 0 or more entries
+ * are not completely included in the output, and it is considered invalid.
+ *
+ * @param cluster cluster handle
+ * @param buf output buffer (outparam)
+ * @param len output buffer length
+ * @param req_len Set on range failure. Buffer size required to write all keys, including final NULL terminator.
+ * @returns 0 on success (and req_len not set), negative error code on failure
+ * @returns -ERANGE if len indicates buf is too short to contain the keys; req_len will be set to the buffer size
+ * required to contain all the key names.
+ * @returns -EINVAL if a parameter is invalid, or an a failure occured; req_len not set.
+ */
+CEPH_RADOS_API int rados_conf_get_all_keys(rados_t cluster,
+                                           char *buf, const size_t len,
+                                           size_t *req_sz_out);
+
 /** @} config */
 
 /**

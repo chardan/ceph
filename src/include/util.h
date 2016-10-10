@@ -81,4 +81,122 @@ void collect_sys_info(map<string, string> *m, CephContext *cct);
 /// @param type the service type of given @p services, for example @p osd or @p mon.
 void dump_services(Formatter* f, const map<string, list<int> >& services, const char* type);
 
+namespace librados { namespace cutil { 
+inline namespace version_1_0 {
+
+// C++17 flavor std::size():
+// Adapted from: https://isocpp.org/files/papers/n4280.pdf
+namespace detail {
+
+template <typename C>
+constexpr auto size(const C& c) noexcept -> decltype(c.size()) 
+{
+ return c.size();
+}
+
+template <typename T, std::size_t N>
+constexpr std::size_t size(const T(&)[N]) noexcept
+{
+ return N;
+}
+
+} // namespace detail
+
+/* A mini-serialization utility that converts sequences into NULL-delimited strings, a 
+format several librados facilities use. Note that it isn't appropriate for binary data
+(you'd need something like uuencoding) or situations where you need to get types back
+(there's no type tagging). It's also not likely terribly "fast", though it should be
+pretty resilient; it's meant to centralize the ad-hoc implementations we have now. */
+template <typename SeqT>
+inline size_t encoded_size(const SeqT& xs) noexcept;
+
+template <typename FwdIBegin, typename FwdIEnd>
+inline size_t encoded_size(FwdIBegin b, FwdIEnd e) noexcept;
+
+template <typename FwdIBegin, typename FwdIEnd>
+inline size_t flatten_to_cstring(FwdIBegin b, const FwdIEnd e, const size_t out_size, char *out_buffer);
+
+template <typename SeqT>
+inline size_t flatten_to_cstring(const SeqT& xs, const size_t out_size, char *out_buffer);
+
+inline constexpr size_t encoded_size(const char c) noexcept
+{
+ return 1;
+}
+
+template <typename FwdIBegin, typename FwdIEnd>
+inline size_t encoded_size(FwdIBegin b, const FwdIEnd e) noexcept
+{
+ using value_t = typename std::iterator_traits<FwdIBegin>::value_type;
+
+ return std::accumulate(b, e, 1,
+                        [](const size_t len, const value_t& x) { return len + librados::cutil::encoded_size(x); }); 
+}
+
+template <typename SeqT>
+inline size_t encoded_size(const SeqT& xs) noexcept
+{
+ return encoded_size(std::begin(xs), std::end(xs));
+}
+
+// This is specific behavior for C strings. Remember that this is not a general encoder:
+template <std::size_t N>
+inline std::size_t encoded_size(const char(&)[N]) noexcept 
+{
+ return N;
+}
+
+template <typename T, std::size_t N>
+inline std::size_t encoded_size(const T(&)[N]) noexcept
+{
+ return 1 + N;
+}
+
+// Note that single characters are /not/ NULL-terminated in the output buffer (just like C):
+inline size_t flatten_to_cstring(const char c, const size_t out_size, char *out_buffer)
+{
+ if(1 > out_size) 
+  throw std::out_of_range("librados::cutil::flatten_to_cstring(), out_size");
+
+ return out_buffer[0] = c, 1;
+}
+
+inline size_t flatten_to_cstring(const char *s, const size_t out_size, char *out_buffer)
+{
+ return flatten_to_cstring(s, strlen(s) + s, out_size, out_buffer);
+}
+
+template <typename SeqT>
+inline size_t flatten_to_cstring(const SeqT& xs, const size_t out_size, char *out_buffer) 
+{
+ if(out_size < librados::cutil::encoded_size(xs))
+  throw std::out_of_range("librados::cutil::flatten_to_cstring(), out_size");
+
+ return flatten_to_cstring(std::begin(xs), std::end(xs), out_size, out_buffer);
+}
+
+template <typename FwdIBegin, typename FwdIEnd>
+inline size_t flatten_to_cstring(FwdIBegin b, const FwdIEnd e, const size_t out_size, char *out_buffer)
+{
+ size_t bytes_written = 0;
+
+ using value_t = typename std::iterator_traits<FwdIBegin>::value_type;
+
+ std::for_each(b, e, [&](const value_t& x) {
+     bytes_written += flatten_to_cstring(x, out_size - bytes_written, out_buffer + bytes_written);
+ });
+
+ // We need room for the terminating NULL:
+ if(out_size < bytes_written)
+  throw std::out_of_range("librados::cutil::flatten_to_cstring(), out_size");
+
+ out_buffer[bytes_written] = 0;
+
+ return 1 + bytes_written;
+}
+
+} // inline namespace version_1_0
+}} // namespace librados::cutil
+
+
 #endif /* CEPH_UTIL_H */
