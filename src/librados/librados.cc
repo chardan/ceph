@@ -2812,6 +2812,48 @@ extern "C" int rados_conf_get_all_keys(rados_t cluster, char *buf, const size_t 
   }
 }
 
+extern "C" int rados_conf_get_all_keys_with_types(rados_t cluster, char *buf, const size_t len, size_t *req_sz_out)
+{
+ using namespace std;
+
+ using key_and_type = tuple<std::string, std::string>;
+
+ auto get_kt = [](const config_option *o) {
+		 return make_tuple(o->name, ceph::detail::to_string(o->type));
+ 	       };
+
+ const auto conf& client->cct->_conf;
+
+ auto client = static_cast<librados::RadosClient *>(cluster);
+
+std::cout << "JFW:!!!! remember to check the documentation!\n";
+
+ try
+  {
+        if(nullptr == client || nullptr == buf || nullptr == req_sz_out)
+         return -EINVAL;
+
+        auto& opts = *conf.get_all_options_ptr();
+
+	vector<key_and_type> kts(conf.get_all_options_count());
+
+	transform(opts, conf.get_all_options_count() + opts, begin(kts), 
+		  get_kt);
+	
+        if(len < librados::cutil::flatten_to_cstring(kts, len, buf))
+	 ;
+  }
+ catch(std::invalid_argument& e)
+  {
+        return -EINVAL;
+  }
+ catch(std::out_of_range& e)
+  {
+        *req_sz_out = librados::cutil::encoded_size(keys);
+        return -ERANGE;
+  }
+}
+
 extern "C" int64_t rados_pool_lookup(rados_t cluster, const char *name)
 {
   tracepoint(librados, rados_pool_lookup_enter, cluster, name);

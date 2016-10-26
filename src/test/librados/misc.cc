@@ -1229,6 +1229,17 @@ TEST(LibRadosMiscConfGetAllKeys, ConfGetAllKeys) {
   EXPECT_NE(end(output), match_iter);
 }
 
+TEST(LibRadosMiscConfGetAllKeysWithTypes, ConfGetAllKeysWithTypes) {
+
+  detail::rados_connection rc;
+
+  size_t request_size_out = 1024*1024;
+
+  std::vector<char> output(request_size_out);
+
+  result = rados_conf_get_all_keys_with_types(rc.cluster, &output[0], request_size_out, &request_size_out);
+}
+
 int main(int argc, char **argv)
 {
   ::testing::InitGoogleTest(&argc, argv);

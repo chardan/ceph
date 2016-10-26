@@ -1156,6 +1156,7 @@ namespace librados
     int conf_set(const char *option, const char *value);
     int conf_get(const char *option, std::string &val);
     int conf_get_all(std::vector<std::string>& vals);
+// JFW: don't forget this 
 
     int pool_create(const char *name);
     int pool_create(const char *name, uint64_t auid);

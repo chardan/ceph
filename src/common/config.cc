@@ -872,6 +872,16 @@ void md_config_t::get_all_keys(std::vector<std::string> *keys) const {
   }
 }
 
+size_t md_config_t::get_all_options_count()
+{
+ return NUM_CONFIG_OPTIONS;
+}
+
+config_options **get_all_options_ptr()
+{
+ return config_optionsp;
+}
+
 /* The order of the sections here is important.  The first section in the
  * vector is the "highest priority" section; if we find it there, we'll stop
  * looking. The lowest priority section is the one we look in only if all

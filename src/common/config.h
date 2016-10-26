@@ -139,6 +139,10 @@ public:
 
   void get_all_keys(std::vector<std::string> *keys) const;
 
+  // Low-level access to options:
+  size_t get_all_options_count() const noexcept;
+  config_option **get_all_options_ptr() const noexcept;
+
   // Return a list of all the sections that the current entity is a member of.
   void get_my_sections(std::vector <std::string> &sections) const;
 
@@ -255,10 +259,36 @@ public:
   friend class test_md_config_t;
 };
 
-typedef enum {
+enum class opt_type_t : int {
 	OPT_INT, OPT_LONGLONG, OPT_STR, OPT_DOUBLE, OPT_FLOAT, OPT_BOOL,
 	OPT_ADDR, OPT_U32, OPT_U64, OPT_UUID
-} opt_type_t;
+};
+
+namespace ceph { namespace detail {
+
+// Prettyprint:
+std::string to_string(const opt_type_t ot) 
+{
+ switch(ot)
+ {
+  case opt_type_t::OPT_INT:		return "int";		break;
+  case opt_type_t::OPT_LONGLONG:	return "longlong";	break;
+  case opt_type_t::OPT_STR:		return "str";		break;
+  case opt_type_t::OPT_DOUBLE:		return "double";	break;
+  case opt_type_t::OPT_FLOAT:		return "float";		break;
+  case opt_type_t::OPT_BOOL:		return "bool";		break;
+  case opt_type_t::OPT_ADDR:		return "addr";		break;
+  case opt_type_t::OPT_U32:		return "u32";		break;
+  case opt_type_t::OPT_U64:		return "u64";		break;
+  case opt_type_t::OPT_UUID:		return "uuid";		break;
+ }
+
+ std::ostringstream os;
+ os << "bad opt_type_t: " << static_cast<int>(ot);
+ throw std::runtime_error(os.str());
+}
+
+} // namespace ceph::detail
 
 int ceph_resolve_file_search(const std::string& filename_list,
 			     std::string& result);

@@ -555,8 +555,8 @@ CEPH_RADOS_API int rados_conf_get(rados_t cluster, const char *option,
  * After the last option name, there will be two 0 bytes in a row (one to signal
  * end-of-sequence, another end-of-buffer).
  *
- * If len is less than the space required to fill the buffer, 0 or more entries
- * are not completely included in the output, and it is considered invalid.
+ * If len is less than the space required to fill the buffer, output may be
+ * partial, and is considered invalid.
  *
  * @param cluster cluster handle
  * @param buf output buffer (outparam)
@@ -570,6 +570,33 @@ CEPH_RADOS_API int rados_conf_get(rados_t cluster, const char *option,
 CEPH_RADOS_API int rados_conf_get_all_keys(rados_t cluster,
                                            char *buf, const size_t len,
                                            size_t *req_sz_out);
+
+/** 
+ * JFW: CHECK ME FOR ACCURACY! :-)
+ *
+ * Get a list of configuration option key names and types
+ *
+ * Gets a list of configuration option key and type names as NULL-terminated string pairs.
+ *
+ * The option name-type pairs will be placed in the supplied buffer one after another.
+ * After the last option name, there will be two 0 bytes in a row (one to signal
+ * end-of-sequence, another end-of-buffer).
+ *
+ * If len is less than the space required to fill the buffer, output may be
+ * partial, and is considered invalid.
+ *
+ * @param cluster cluster handle
+ * @param buf output buffer (outparam)
+ * @param len output buffer length
+ * @param req_len Set on range failure. Buffer size required to write all data, including final NULL terminator.
+ * @returns 0 on success (and req_len not set), negative error code on failure
+ * @returns -ERANGE if len indicates buf is too short to contain the keys; req_len will be set to the buffer size
+ * required to contain all the key names.
+ * @returns -EINVAL if a parameter is invalid, or an a failure occured; req_len not set.
+ */
+CEPH_RADOS_API int rados_conf_get_all_keys_with_types(rados_t cluster, 
+						      char *buf, const size_t len, 
+						      size_t *req_sz_out);
 
 /** @} config */
 
