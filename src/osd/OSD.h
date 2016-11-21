@@ -2508,13 +2508,20 @@ extern const CompatSet::Feature ceph_osd_feature_compat[];
 extern const CompatSet::Feature ceph_osd_feature_ro_compat[];
 extern const CompatSet::Feature ceph_osd_feature_incompat[];
 
-/* Ironically, the inner namespace has a strange name because "osd" and 
+/* Ironicaly, the inner namespace has a strange name because "osd" and 
 "osd_commands" were already taken! */
 namespace ceph { 
 namespace osd_cmds { 
 namespace admin {
 
 int heap(CephContext& cct, cmdmap_t& cmdmap, Formatter& f, std::ostream& os);
+
+}}} // namespace ceph::osd::admin_commands
+
+namespace ceph { namespace osd_cmds { namespace admin {
+
+ceph::osd_cmds::command_result heap(CephContext& cct, cmdmap_t& cmdmap, 
+                                    Formatter& f, std::ostream& os);
 
 }}} // namespace ceph::osd::admin_commands
 

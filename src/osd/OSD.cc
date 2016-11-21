@@ -9443,14 +9443,14 @@ auto heap(CephContext& cct, cmdmap_t& cmdmap,
  if (!ceph_using_tcmalloc()) {
  	os << "could not issue heap profiler command -- not using tcmalloc!";
   	return -EOPNOTSUPP;
-  }
+ }
  
  string cmd;
 
  if (false == cmd_getval(&cct, cmdmap, "heapcmd", cmd)) {
  	os << "unable to get value for command \"" << cmd << "\"";
  	return -EINVAL;
-  }
+ }
  
  std::vector<std::string> cmd_vec;
  
