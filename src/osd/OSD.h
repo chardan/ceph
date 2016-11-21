@@ -2508,32 +2508,14 @@ extern const CompatSet::Feature ceph_osd_feature_compat[];
 extern const CompatSet::Feature ceph_osd_feature_ro_compat[];
 extern const CompatSet::Feature ceph_osd_feature_incompat[];
 
-// Ironically, the inner namespace has a strange name because "osd" and "osd_commands" were already taken!
-namespace ceph { namespace osd_cmds {
+/* Ironically, the inner namespace has a strange name because "osd" and 
+"osd_commands" were already taken! */
+namespace ceph { 
+namespace osd_cmds { 
+namespace admin {
 
-enum class command_result : int {
-	ok			= 0,
-	invalid_value		= -EINVAL,
-	operation_not_supported	= -EOPNOTSUPP,
-};
-
-inline std::string to_string(const command_result cr)
-{
- switch(cr)
- {
-  case ceph::osd_cmds::command_result::ok:			return "ok";				break;
-  case ceph::osd_cmds::command_result::invalid_value:		return "invalid value";			break;
-  case ceph::osd_cmds::command_result::operation_not_supported:	return "operation not supported";	break;
- };
-}
-
-}} // namespace ceph::osd
-
-namespace ceph { namespace osd_cmds { namespace admin {
-
-ceph::osd_cmds::command_result heap(CephContext& cct, cmdmap_t& cmdmap, Formatter& f, std::ostream& os);
+int heap(CephContext& cct, cmdmap_t& cmdmap, Formatter& f, std::ostream& os);
 
 }}} // namespace ceph::osd::admin_commands
-
 
 #endif
