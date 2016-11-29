@@ -9498,4 +9498,4 @@ auto heap(CephContext& cct, cmdmap_t& cmdmap,
  return 0;
 }
 
-}}} // namespace ceph::osd::admin_commands
+}}} // namespace ceph::osd_cmds::admin

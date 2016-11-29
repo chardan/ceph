@@ -2511,13 +2511,6 @@ namespace admin {
 
 int heap(CephContext& cct, cmdmap_t& cmdmap, Formatter& f, std::ostream& os);
 
-}}} // namespace ceph::osd::admin_commands
-
-namespace ceph { namespace osd_cmds { namespace admin {
-
-ceph::osd_cmds::command_result heap(CephContext& cct, cmdmap_t& cmdmap, 
-                                    Formatter& f, std::ostream& os);
-
-}}} // namespace ceph::osd::admin_commands
+}}} // namespace ceph::osd_cmds::admin
 
 #endif
