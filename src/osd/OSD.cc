@@ -1896,7 +1896,7 @@ bool OSD::asok_command(string command, cmdmap_t& cmdmap, string format,
   } else if (command == "get_latest_osdmap") {
     get_latest_osdmap();
   } else if (command == "heap") {
-    auto result = ceph::osd_cmds::admin::heap(*cct, cmdmap, *f, ss);
+    auto result = ceph::osd_cmds::heap(*cct, cmdmap, *f, ss);
 
     // Note: Failed heap profile commands won't necessarily trigger an error:
     f->open_object_section("result");
@@ -5843,17 +5843,7 @@ void OSD::do_command(Connection *con, ceph_tid_t tid, vector<string>& cmd, buffe
   }
 
   else if (prefix == "heap") {
-    if (!ceph_using_tcmalloc()) {
-      r = -EOPNOTSUPP;
-      ss << "could not issue heap profiler command -- not using tcmalloc!";
-    } else {
-      string heapcmd;
-      cmd_getval(cct, cmdmap, "heapcmd", heapcmd);
-      // XXX 1-element vector, change at callee or make vector here?
-      vector<string> heapcmd_vec;
-      get_str_vec(heapcmd, heapcmd_vec);
-      ceph_heap_profiler_handle_command(heapcmd_vec, ds);
-    }
+    r = ceph::osd_cmds::heap(*cct, cmdmap, *f, ds);
   }
 
   else if (prefix == "debug dump_missing") {
@@ -9508,7 +9498,6 @@ void OSD::PeeringWQ::_dequeue(list<PG*> *out) {
 
 namespace ceph { 
 namespace osd_cmds { 
-namespace admin {
 
 int heap(CephContext& cct, cmdmap_t& cmdmap, Formatter& f, std::ostream& os)
 {
@@ -9532,5 +9521,5 @@ int heap(CephContext& cct, cmdmap_t& cmdmap, Formatter& f, std::ostream& os)
   return 0;
 }
  
-}}} // namespace ceph::osd::admin_commands
+}} // namespace ceph::osd_cmds
 

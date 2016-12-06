@@ -2512,11 +2512,10 @@ extern const CompatSet::Feature ceph_osd_feature_incompat[];
 
 namespace ceph { 
 namespace osd_cmds { 
-namespace admin {
 
 int heap(CephContext& cct, cmdmap_t& cmdmap, Formatter& f, std::ostream& os);
  
-}}} // namespace ceph::osd_cmds::admin
+}} // namespace ceph::osd_cmds
 
 
 #endif
