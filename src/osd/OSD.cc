@@ -1777,20 +1777,20 @@ class OSDSocketHook : public AdminSocketHook {
   OSD *osd;
 public:
   explicit OSDSocketHook(OSD *o) : osd(o) {}
-  bool call(std::string command, cmdmap_t& cmdmap, std::string format,
+  bool call(std::string admin_command, cmdmap_t& cmdmap, std::string format,
 	    bufferlist& out) {
     stringstream ss;
-    bool r = osd->asok_command(command, cmdmap, format, ss);
+    bool r = osd->asok_command(admin_command, cmdmap, format, ss);
     out.append(ss);
     return r;
   }
 };
 
-bool OSD::asok_command(string command, cmdmap_t& cmdmap, string format,
+bool OSD::asok_command(string admin_command, cmdmap_t& cmdmap, string format,
 		       ostream& ss)
 {
   Formatter *f = Formatter::create(format, "json-pretty", "json-pretty");
-  if (command == "status") {
+  if (admin_command == "status") {
     f->open_object_section("status");
     f->dump_stream("cluster_fsid") << superblock.cluster_fsid;
     f->dump_stream("osd_fsid") << superblock.osd_fsid;
@@ -1803,29 +1803,29 @@ bool OSD::asok_command(string command, cmdmap_t& cmdmap, string format,
       f->dump_unsigned("num_pgs", pg_map.size());
     }
     f->close_section();
-  } else if (command == "flush_journal") {
+  } else if (admin_command == "flush_journal") {
     store->flush_journal();
-  } else if (command == "dump_ops_in_flight" ||
-	     command == "ops") {
+  } else if (admin_command == "dump_ops_in_flight" ||
+	     admin_command == "ops") {
     if (!op_tracker.dump_ops_in_flight(f)) {
       ss << "op_tracker tracking is not enabled now, so no ops are tracked currently, even those get stuck. \
 	Please enable \"osd_enable_op_tracker\", and the tracker will start to track new ops received afterwards.";
     }
-  } else if (command == "dump_blocked_ops") {
+  } else if (admin_command == "dump_blocked_ops") {
     if (!op_tracker.dump_ops_in_flight(f, true)) {
       ss << "op_tracker tracking is not enabled now, so no ops are tracked currently, even those get stuck. \
 	Please enable \"osd_enable_op_tracker\", and the tracker will start to track new ops received afterwards.";
     }
-  } else if (command == "dump_historic_ops") {
+  } else if (admin_command == "dump_historic_ops") {
     if (!op_tracker.dump_historic_ops(f)) {
       ss << "op_tracker tracking is not enabled now, so no ops are tracked currently, even those get stuck. \
 	Please enable \"osd_enable_op_tracker\", and the tracker will start to track new ops received afterwards.";
     }
-  } else if (command == "dump_op_pq_state") {
+  } else if (admin_command == "dump_op_pq_state") {
     f->open_object_section("pq");
     op_shardedwq.dump(f);
     f->close_section();
-  } else if (command == "dump_blacklist") {
+  } else if (admin_command == "dump_blacklist") {
     list<pair<entity_addr_t,utime_t> > bl;
     OSDMapRef curmap = service.get_osdmap();
 
@@ -1841,7 +1841,7 @@ bool OSD::asok_command(string command, cmdmap_t& cmdmap, string format,
       f->close_section(); //entry
     }
     f->close_section(); //blacklist
-  } else if (command == "dump_watchers") {
+  } else if (admin_command == "dump_watchers") {
     list<obj_watch_item_t> watchers;
     // scan pg's
     {
@@ -1884,7 +1884,7 @@ bool OSD::asok_command(string command, cmdmap_t& cmdmap, string format,
     }
 
     f->close_section(); //watchers
-  } else if (command == "dump_reservations") {
+  } else if (admin_command == "dump_reservations") {
     f->open_object_section("reservations");
     f->open_object_section("local_reservations");
     service.local_reserver.dump(f);
@@ -1893,9 +1893,9 @@ bool OSD::asok_command(string command, cmdmap_t& cmdmap, string format,
     service.remote_reserver.dump(f);
     f->close_section();
     f->close_section();
-  } else if (command == "get_latest_osdmap") {
+  } else if (admin_command == "get_latest_osdmap") {
     get_latest_osdmap();
-  } else if (command == "heap") {
+  } else if (admin_command == "heap") {
     auto result = ceph::osd_cmds::heap(*cct, cmdmap, *f, ss);
 
     // Note: Failed heap profile commands won't necessarily trigger an error:
@@ -1903,7 +1903,7 @@ bool OSD::asok_command(string command, cmdmap_t& cmdmap, string format,
     f->dump_string("error", cpp_strerror(result));
     f->dump_bool("success", result >= 0);
     f->close_section();
-  } else if (command == "set_heap_property") {
+  } else if (admin_command == "set_heap_property") {
     string property;
     int64_t value = 0;
     string error;
@@ -1927,7 +1927,7 @@ bool OSD::asok_command(string command, cmdmap_t& cmdmap, string format,
     f->dump_string("error", error);
     f->dump_bool("success", success);
     f->close_section();
-  } else if (command == "get_heap_property") {
+  } else if (admin_command == "get_heap_property") {
     string property;
     size_t value = 0;
     string error;
