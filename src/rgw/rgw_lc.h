@@ -9,7 +9,6 @@
 #include "common/debug.h"
 
 #include "include/types.h"
-#include "include/atomic.h"
 #include "include/rados/librados.hpp"
 #include "common/Mutex.h"
 #include "common/Cond.h"
@@ -17,6 +16,8 @@
 #include "rgw_common.h"
 #include "rgw_rados.h"
 #include "cls/rgw/cls_rgw_types.h"
+
+#include <atomic>
 
 using namespace std;
 #define HASH_PRIME 7877
@@ -212,7 +213,7 @@ class RGWLC {
   RGWRados *store;
   int max_objs;
   string *obj_names;
-  atomic_t down_flag;
+  std::atomic<unsigned> down_flag { 0 };
   string cookie;
 
   class LCWorker : public Thread {
