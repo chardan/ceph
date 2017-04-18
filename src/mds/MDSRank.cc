@@ -287,7 +287,7 @@ void MDSRankDispatcher::shutdown()
 
   purge_queue.shutdown();
 
-  if (objecter->initialized.read())
+  if (objecter->initialized)
     objecter->shutdown();
 
   monc->shutdown();
