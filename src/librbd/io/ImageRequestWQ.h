@@ -99,10 +99,11 @@ private:
   Contexts m_write_blocker_contexts;
   uint32_t m_write_blockers;
   bool m_require_lock_on_read = false;
-  std::atomic<unsigned> m_in_progress_writes { 0 };
-  std::atomic<unsigned> m_queued_reads { 0 };
-  std::atomic<unsigned> m_queued_writes { 0 };
-  std::atomic<unsigned> m_in_flight_ops { 0 };
+
+  std::atomic<uint64_t> m_in_progress_writes = { 0 };
+  std::atomic<uint64_t> m_queued_reads = { 0 };
+  std::atomic<uint64_t> m_queued_writes = { 0 };
+  std::atomic<uint64_t> m_in_flight_ops = { 0 };
 
   bool m_refresh_in_progress;
 
@@ -111,7 +112,7 @@ private:
 
   inline bool writes_empty() const {
     RWLock::RLocker locker(m_lock);
-    return (m_queued_writes == 0);
+    return m_queued_writes == 0;
   }
 
   void finish_queued_op(ImageRequest<ImageCtx> *req);

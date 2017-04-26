@@ -85,7 +85,7 @@ private:
   State m_state;
   ceph::bufferlist m_copyup_data;
   std::vector<ObjectRequest<ImageCtx> *> m_pending_requests;
-  std::atomic<unsigned> m_pending_copyups { 0 };
+  std::atomic<uint64_t> m_pending_copyups = { 0 };
 
   AsyncOperation m_async_op;
 
