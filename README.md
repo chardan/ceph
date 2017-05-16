@@ -1,5 +1,7 @@
 # Ceph - a scalable distributed storage system
 
+Totally incredible change!!!! Thanks, Nathan! :-)
+
 Please see http://ceph.com/ for current info.
 
 
