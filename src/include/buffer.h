@@ -343,8 +343,12 @@ namespace buffer CEPH_BUFFER_API {
    */
 
   class CEPH_BUFFER_API list {
+
+    using buffers_t = std::list<ptr>;
+
     // my private bits
-    std::list<ptr> _buffers;
+//JFW:    std::list<ptr> _buffers;
+    buffers_t _buffers;
     unsigned _len;
     unsigned _memcopy_count; //the total of memcopy using rebuild().
     ptr append_buffer;  // where i put small appends.
