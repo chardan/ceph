@@ -347,7 +347,6 @@ namespace buffer CEPH_BUFFER_API {
     using buffers_t = std::list<ptr>;
 
     // my private bits
-//JFW:    std::list<ptr> _buffers;
     buffers_t _buffers;
     unsigned _len;
     unsigned _memcopy_count; //the total of memcopy using rebuild().
@@ -366,8 +365,8 @@ namespace buffer CEPH_BUFFER_API {
 					const list,
 					list>::type bl_t;
       typedef typename std::conditional<is_const,
-					const std::list<ptr>,
-					std::list<ptr> >::type list_t;
+					const buffers_t,
+					buffers_t>::type list_t;
       typedef typename std::conditional<is_const,
 					typename std::list<ptr>::const_iterator,
 					typename std::list<ptr>::iterator>::type list_iter_t;
