@@ -368,8 +368,8 @@ namespace buffer CEPH_BUFFER_API {
 					const buffers_t,
 					buffers_t>::type list_t;
       typedef typename std::conditional<is_const,
-					typename std::list<ptr>::const_iterator,
-					typename std::list<ptr>::iterator>::type list_iter_t;
+					typename buffers_t::const_iterator,
+					typename buffers_t::iterator>::type list_iter_t;
       bl_t* bl;
       list_t* ls;  // meh.. just here to avoid an extra pointer dereference..
       unsigned off; // in bl
@@ -702,7 +702,7 @@ namespace buffer CEPH_BUFFER_API {
     }
 
     unsigned get_memcopy_count() const {return _memcopy_count; }
-    const std::list<ptr>& buffers() const { return _buffers; }
+    const buffers_t& buffers() const { return _buffers; }
     void swap(list& other);
     unsigned length() const {
 #if 0
@@ -796,22 +796,20 @@ namespace buffer CEPH_BUFFER_API {
 
     // clone non-shareable buffers (make shareable)
     void make_shareable() {
-      std::list<buffer::ptr>::iterator pb;
-      for (pb = _buffers.begin(); pb != _buffers.end(); ++pb) {
-        (void) pb->make_shareable();
-      }
+      for (auto& pb : _buffers)
+       static_cast<void>(pb.make_shareable());
     }
 
     // copy with explicit volatile-sharing semantics
     void share(const list& bl)
     {
-      if (this != &bl) {
-        clear();
-        std::list<buffer::ptr>::const_iterator pb;
-        for (pb = bl._buffers.begin(); pb != bl._buffers.end(); ++pb) {
-          push_back(*pb);
-        }
-      }
+      if (this == &bl)
+       return;
+
+      clear();
+
+      for (const auto& pb : _buffers)
+       push_back(pb);
     }
 
     iterator begin() {
