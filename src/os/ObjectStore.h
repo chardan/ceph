@@ -727,11 +727,12 @@ public:
       vector<__le32> &cm,
       vector<__le32> &om) {
 
-      list<bufferptr> list = bl.buffers();
-      std::list<bufferptr>::iterator p;
+        auto list = bl.buffers();
+        decltype(list)::iterator p;
 
-      for(p = list.begin(); p != list.end(); ++p) {
-        assert(p->length() % sizeof(Op) == 0);
+        for(p = list.begin(); p != list.end(); ++p) {
+          assert(p->length() % sizeof(Op) == 0);
+        }
 
         char* raw_p = p->c_str();
         char* raw_end = raw_p + p->length();
@@ -739,7 +740,6 @@ public:
           _update_op(reinterpret_cast<Op*>(raw_p), cm, om);
           raw_p += sizeof(Op);
         }
-      }
     }
     /// Append the operations of the parameter to this Transaction. Those operations are removed from the parameter Transaction
     void append(Transaction& other) {
