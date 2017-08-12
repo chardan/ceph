@@ -41,6 +41,7 @@
 #include <iosfwd>
 #include <iomanip>
 #include <list>
+#include <deque>
 #include <vector>
 #include <string>
 #include <exception>
@@ -344,7 +345,7 @@ namespace buffer CEPH_BUFFER_API {
 
   class CEPH_BUFFER_API list {
 
-    using buffers_t = std::list<ptr>;
+    using buffers_t = std::deque<ptr>;
 
     // my private bits
     buffers_t _buffers;
