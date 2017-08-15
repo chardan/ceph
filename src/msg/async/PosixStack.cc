@@ -185,8 +185,9 @@ class PosixConnectedSocketImpl final : public ConnectedSocketImpl {
 
   ssize_t send(bufferlist &bl, bool more) override {
     size_t sent_bytes = 0;
-    std::list<bufferptr>::const_iterator pb = bl.buffers().begin();
-    uint64_t left_pbrs = bl.buffers().size();
+    auto pb = bl.buffers().begin();
+// JFW:    std::list<bufferptr>::const_iterator pb = bl.buffers().begin();
+    uint64_t left_pbrs = bl.buffers().size();   // JFW: this is also wrong... might need TLC
     while (left_pbrs) {
       struct msghdr msg;
       struct iovec msgvec[IOV_MAX];
