@@ -685,7 +685,6 @@ add_library(rados_snap_set_diff_obj OBJECT librados/snap_set_diff.cc)
 
 add_subdirectory(include)
 add_subdirectory(librados)
-add_subdirectory(libradosstriper)
 
 if (WITH_MGR)
   set(mgr_srcs
