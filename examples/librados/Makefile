@@ -1,7 +1,7 @@
 
 CXX?=g++
 CXX_FLAGS?=-std=c++11 -Wall -Wextra -Werror -g
-CXX_LIBS?=-lboost_system -lrados -lradosstriper
+CXX_LIBS?=-lboost_system -lrados 
 CXX_INC?=$(LOCAL_LIBRADOS_INC)
 CXX_CC=$(CXX) $(CXX_FLAGS) $(CXX_INC) $(LOCAL_LIBRADOS) $(CXX_LIBS)
 
@@ -18,7 +18,7 @@ CEPH_BLD_HOME?=../../build
 LOCAL_LIBRADOS?=-L$(CEPH_BLD_HOME)/lib/ -Wl,-rpath,$(CEPH_BLD_HOME)/lib
 LOCAL_LIBRADOS_INC?=-I$(CEPH_SRC_HOME)/include
 
-all: hello_world_cpp hello_radosstriper_cpp hello_world_c
+all: hello_world_cpp hello_world_c
 
 # Build against the system librados instead of the one in the build tree:
 all-system: LOCAL_LIBRADOS=
@@ -28,12 +28,9 @@ all-system: all
 hello_world_cpp: hello_world.cc
 	$(CXX_CC) -o hello_world_cpp hello_world.cc
 
-hello_radosstriper_cpp: hello_radosstriper.cc
-	$(CXX_CC) -o hello_radosstriper_cpp hello_radosstriper.cc
-
 hello_world_c: hello_world_c.c
 	$(CC_CC) -o hello_world_c hello_world_c.c
 
 clean:
-	rm -f hello_world_cpp hello_radosstriper_cpp hello_world_c
+	rm -f hello_world_cpp hello_world_c
 
