@@ -88,8 +88,6 @@ subpackages="
 	librgw-dev:librgw_dev
 	py-rados:py_rados
 	py-rgw:py_rgw
-	libradosstriper
-	libradosstriper-dev:libradosstriper_dev
 	py-rbd:py_rbd
 	py-cephfs:py_cephfs
 "
@@ -356,21 +354,6 @@ py_rados() {
 	depends="librados"
 
 	_pkg $_python_sitelib rados.so rados-*.egg-info
-}
-
-libradosstriper() {
-	pkgdesc="RADOS striping library"
-	depends="librados"
-
-	_pkg $_libdir libradosstriper.so.*
-}
-
-libradosstriper_dev() {
-	pkgdesc="RADOS striping library headers"
-	depends="libradosstriper librados-dev"
-
-	_pkg $_includedir/radosstriper libradosstriper.h libradosstriper.hpp
-	_pkg $_libdir libradosstriper.so
 }
 
 librbd() {

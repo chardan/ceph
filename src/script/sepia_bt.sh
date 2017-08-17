@@ -118,7 +118,7 @@ case $prog in
         pkgs=librados2
         ;;
     rados)
-        pkgs="ceph-common librados2 libradosstriper1"
+        pkgs="ceph-common librados2"
         ;;
     *)
         die "unknown prog: $prog"

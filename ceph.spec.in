@@ -523,31 +523,6 @@ Requires:	librados2 = %{_epoch_prefix}%{version}-%{release}
 This package contains Python 3 libraries for interacting with Cephs RADOS
 object store.
 
-%package -n libradosstriper1
-Summary:	RADOS striping interface
-%if 0%{?suse_version}
-Group:		System/Libraries
-%endif
-Requires:	librados2 = %{_epoch_prefix}%{version}-%{release}
-%description -n libradosstriper1
-Striping interface built on top of the rados library, allowing
-to stripe bigger objects onto several standard rados objects using
-an interface very similar to the rados one.
-
-%package -n libradosstriper-devel
-Summary:	RADOS striping interface headers
-%if 0%{?suse_version}
-Group:		Development/Libraries/C and C++
-%endif
-Requires:	libradosstriper1 = %{_epoch_prefix}%{version}-%{release}
-Requires:	librados-devel = %{_epoch_prefix}%{version}-%{release}
-Obsoletes:	ceph-devel < %{_epoch_prefix}%{version}-%{release}
-Provides:	libradosstriper1-devel = %{_epoch_prefix}%{version}-%{release}
-Obsoletes:	libradosstriper1-devel < %{_epoch_prefix}%{version}-%{release}
-%description -n libradosstriper-devel
-This package contains libraries and headers needed to develop programs
-that use RADOS striping interface.
-
 %package -n librbd1
 Summary:	RADOS block device client library
 %if 0%{?suse_version}
@@ -1506,19 +1481,6 @@ fi
 %files -n python%{python3_pkgversion}-rados
 %{python3_sitearch}/rados.cpython*.so
 %{python3_sitearch}/rados-*.egg-info
-
-%files -n libradosstriper1
-%{_libdir}/libradosstriper.so.*
-
-%post -n libradosstriper1 -p /sbin/ldconfig
-
-%postun -n libradosstriper1 -p /sbin/ldconfig
-
-%files -n libradosstriper-devel
-%dir %{_includedir}/radosstriper
-%{_includedir}/radosstriper/libradosstriper.h
-%{_includedir}/radosstriper/libradosstriper.hpp
-%{_libdir}/libradosstriper.so
 
 %files -n librbd1
 %{_libdir}/librbd.so.*

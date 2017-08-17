@@ -25,7 +25,6 @@ ceph:
   - ceph-test-dbg
   - libcephfs2-dbg
   - librados2-dbg
-  - libradosstriper1-dbg
   - librbd1-dbg
   - librgw2-dbg
   - radosgw-dbg
