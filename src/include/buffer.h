@@ -51,6 +51,8 @@
 #include "crc32c.h"
 #include "buffer_fwd.h"
 
+#include "include/seq_util.h"
+
 #ifdef __CEPH__
 # include "include/assert.h"
 #else
@@ -345,9 +347,10 @@ namespace buffer CEPH_BUFFER_API {
 
   class CEPH_BUFFER_API list {
 
-    using buffers_t = std::deque<ptr>;
+    public:
+    using buffers_t = std::vector<ptr>;
 
-    // my private bits
+    private:
     buffers_t _buffers;
     unsigned _len;
     unsigned _memcopy_count; //the total of memcopy using rebuild().
@@ -743,15 +746,20 @@ namespace buffer CEPH_BUFFER_API {
     }
     void push_front(ptr& bp) {
       if (bp.length() == 0)
-	return;
-      _buffers.push_front(bp);
+	   return;
+  
+      _buffers.insert(std::begin(_buffers), bp); 
+//JFW:      ceph::util::push_front(_buffers, bp); 
+
       _len += bp.length();
     }
     void push_front(ptr&& bp) {
       if (bp.length() == 0)
 	return;
       _len += bp.length();
-      _buffers.push_front(std::move(bp));
+
+      _buffers.insert(std::begin(_buffers), std::move(bp)); 
+//JFW:      ceph::util::push_front(_buffers, std::move(bp));
     }
     void push_front(raw *r) {
       push_front(ptr(r));

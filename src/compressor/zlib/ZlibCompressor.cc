@@ -66,8 +66,11 @@ int ZlibCompressor::zlib_compress(const bufferlist &in, bufferlist &out)
     return -1;
   }
 
+  for (auto i = in.buffers().cbegin();
+      i != in.buffers().cend();) {
+/* JFW:  
   for (std::list<buffer::ptr>::const_iterator i = in.buffers().begin();
-      i != in.buffers().end();) {
+      i != in.buffers().end();) {*/
 
     c_in = (unsigned char*) (*i).c_str();
     long unsigned int len = (*i).length();

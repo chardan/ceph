@@ -16,6 +16,8 @@
 
 #include "RDMAStack.h"
 
+#include "include/buffer.h"
+
 #define dout_subsys ceph_subsys_ms
 #undef dout_prefix
 #define dout_prefix *_dout << " RDMAConnectedSocketImpl "
@@ -444,10 +446,10 @@ ssize_t RDMAConnectedSocketImpl::submit(bool more)
   if (!bytes)
     return 0;
 
-  using buffers_t = decltype(pending_bl.buffers().begin());
+  using buffers_citer_t = decltype(pending_bl.buffers().cbegin());
   auto fill_tx_via_copy = [this](std::vector<Chunk*> &tx_buffers, unsigned bytes,
-                                 buffers_t::const_iterator &start,
-                                 buffers_t::const_iterator &end) -> unsigned {
+                                 buffers_citer_t start,
+                                 buffers_citer_t end) -> unsigned {
 /* JFW:
                                  std::list<bufferptr>::const_iterator &start,
                                  std::list<bufferptr>::const_iterator &end) -> unsigned {
