@@ -16,8 +16,11 @@
 
 #include "include/rados/librados.hpp"
 #include "include/rados/rados_types.hpp"
+
+#ifdef WITH_LIBRADOSSTRIPER
 #include "include/radosstriper/libradosstriper.hpp"
 using namespace libradosstriper;
+#endif
 
 #include "common/config.h"
 #include "common/ceph_argparse.h"
@@ -272,6 +275,7 @@ static int dump_data(std::string const &filename, bufferlist const &data)
 }
 
 
+#ifdef WITH_LIBRADOSSTRIPER
 static int do_get(IoCtx& io_ctx, RadosStriper& striper,
 		  const char *objname, const char *outfile, unsigned op_size,
 		  bool use_striper)
@@ -318,6 +322,49 @@ static int do_get(IoCtx& io_ctx, RadosStriper& striper,
     VOID_TEMP_FAILURE_RETRY(::close(fd));
   return ret;
 }
+#else
+static int do_get(IoCtx& io_ctx,
+		  const char *objname, const char *outfile, unsigned op_size)
+{
+  string oid(objname);
+
+  int fd;
+  if (strcmp(outfile, "-") == 0) {
+    fd = STDOUT_FILENO;
+  } else {
+    fd = TEMP_FAILURE_RETRY(::open(outfile, O_WRONLY|O_CREAT|O_TRUNC, 0644));
+    if (fd < 0) {
+      int err = errno;
+      cerr << "failed to open file: " << cpp_strerror(err) << std::endl;
+      return -err;
+    }
+  }
+
+  uint64_t offset = 0;
+  int ret;
+  while (true) {
+    bufferlist outdata;
+    ret = io_ctx.read(oid, outdata, op_size, offset);
+    if (ret <= 0) {
+      goto out;
+    }
+    ret = outdata.write_fd(fd);
+    if (ret < 0) {
+      cerr << "error writing to file: " << cpp_strerror(ret) << std::endl;
+      goto out;
+    }
+    if (outdata.length() < op_size)
+      break;
+    offset += outdata.length();
+  }
+  ret = 0;
+
+ out:
+  if (fd != 1)
+    VOID_TEMP_FAILURE_RETRY(::close(fd));
+  return ret;
+}
+#endif
 
 static int do_copy(IoCtx& io_ctx, const char *objname,
 		   IoCtx& target_ctx, const char *target_obj)
@@ -372,6 +419,7 @@ static int do_copy_pool(Rados& rados, const char *src_pool, const char *target_p
   return 0;
 }
 
+#ifdef WITH_LIBRADOSSTRIPER
 static int do_put(IoCtx& io_ctx, RadosStriper& striper,
 		  const char *objname, const char *infile, int op_size,
 		  uint64_t obj_offset, bool use_striper)
@@ -444,7 +492,67 @@ static int do_put(IoCtx& io_ctx, RadosStriper& striper,
     VOID_TEMP_FAILURE_RETRY(close(fd));
   return ret;
 }
+#else
+static int do_put(IoCtx& io_ctx,
+		  const char *objname, const char *infile, int op_size,
+		  uint64_t obj_offset)
+{
+  string oid(objname);
+  bool stdio = (strcmp(infile, "-") == 0);
+  int ret = 0;
+  int fd = STDIN_FILENO;
+  if (!stdio)
+    fd = open(infile, O_RDONLY);
+  if (fd < 0) {
+    cerr << "error reading input file " << infile << ": " << cpp_strerror(errno) << std::endl;
+    return 1;
+  }
+  int count = op_size;
+  uint64_t offset = obj_offset;
+  while (count != 0) {
+    bufferlist indata;
+    count = indata.read_fd(fd, op_size);
+    if (count < 0) {
+      ret = -errno;
+      cerr << "error reading input file " << infile << ": " << cpp_strerror(ret) << std::endl;
+      goto out;
+    }
+ 
+    if (count == 0) {
+     if (offset == obj_offset) { // in case we have to create an empty object & if obj_offset > 0 do a hole
+	ret = io_ctx.write_full(oid, indata); // indata is empty
+	if (ret < 0) {
+	  goto out;
+	}
+	if (offset) {
+	  ret = io_ctx.trunc(oid, offset); // before truncate, object must be existed.
+	  if (ret < 0) {
+	    goto out;
+	  }
+	}
+      }
+      continue;
+    }
+    if (offset == 0)
+      ret = io_ctx.write_full(oid, indata);
+    else
+      ret = io_ctx.write(oid, indata, count, offset);
 
+    if (ret < 0) {
+      goto out;
+    }
+
+    offset += count;
+  }
+  ret = 0;
+ out:
+  if (fd != STDOUT_FILENO)
+    VOID_TEMP_FAILURE_RETRY(close(fd));
+  return ret;
+}
+#endif
+
+#ifdef WITH_LIBRADOSSTRIPER
 static int do_append(IoCtx& io_ctx, RadosStriper& striper,
                   const char *objname, const char *infile, int op_size,
                   bool use_striper)
@@ -484,6 +592,42 @@ out:
     VOID_TEMP_FAILURE_RETRY(close(fd));
   return ret;
 }
+#else
+static int do_append(IoCtx& io_ctx, 
+                  const char *objname, const char *infile, int op_size)
+{
+  string oid(objname);
+  bool stdio = (strcmp(infile, "-") == 0);
+  int ret = 0;
+  int fd = STDIN_FILENO;
+  if (!stdio)
+    fd = open(infile, O_RDONLY);
+  if (fd < 0) {
+    cerr << "error reading input file " << infile << ": " << cpp_strerror(errno) << std::endl;
+    return 1;
+  }
+  int count = op_size;
+  while (count != 0) {
+    bufferlist indata;
+    count = indata.read_fd(fd, op_size);
+    if (count < 0) {
+      ret = -errno;
+      cerr << "error reading input file " << infile << ": " << cpp_strerror(ret) << std::endl;
+      goto out;
+    }
+
+    ret = io_ctx.append(oid, indata, count);
+    if (ret < 0) {
+      goto out;
+    }
+  }
+  ret = 0;
+out:
+  if (fd != STDOUT_FILENO)
+    VOID_TEMP_FAILURE_RETRY(close(fd));
+  return ret;
+}
+#endif
 
 class RadosWatchCtx : public librados::WatchCtx2 {
   IoCtx& ioctx;
@@ -1625,7 +1769,7 @@ static int rados_tool_common(const std::map < std::string, std::string > &opts,
   bool cleanup = true;
   bool hints = true; // for rados bench
   bool no_verify = false;
-  bool use_striper = false;
+  bool use_striper = false;	// set whether or not libradosstriper is compiled
   bool with_clones = false;
   const char *snapname = NULL;
   snap_t snapid = CEPH_NOSNAP;
@@ -1934,6 +2078,7 @@ static int rados_tool_common(const std::map < std::string, std::string > &opts,
       }
     }
 
+#ifdef WITH_LIBRADOSSTRIPER
     // create striper interface
     if (opts.find("striper") != opts.end()) {
       ret = RadosStriper::striper_create(io_ctx, &striper);
@@ -1944,6 +2089,7 @@ static int rados_tool_common(const std::map < std::string, std::string > &opts,
       }
       use_striper = true;
     }
+#endif
   }
 
   // snapname?
@@ -2150,12 +2296,16 @@ static int rados_tool_common(const std::map < std::string, std::string > &opts,
 	librados::NObjectIterator i_end = io_ctx.nobjects_end();
 	for (; i != i_end; ++i) {
 	  if (use_striper) {
+#ifdef WITH_LIBRADOSSTRIPER
 	    // in case of --striper option, we only list striped
 	    // objects, so we only display the first object of
 	    // each, without its suffix '.000...000'
 	    size_t l = i->get_oid().length();
 	    if (l <= 17 ||
 		(0 != i->get_oid().compare(l-17, 17,".0000000000000000"))) continue;
+#else
+	    throw std::runtime_error("striper setting is enabled, but libradosstriper was not compiled");
+#endif
 	  }
 	  if (!formatter) {
 	    // Only include namespace in output when wildcard specified
@@ -2173,7 +2323,11 @@ static int rados_tool_common(const std::map < std::string, std::string > &opts,
 	    formatter->open_object_section("object");
 	    formatter->dump_string("namespace", i->get_nspace());
 	    if (use_striper) {
+#ifdef WITH_LIBRADOSSTRIPER
 	      formatter->dump_string("name", i->get_oid().substr(0, i->get_oid().length()-17));
+#else
+	      throw std::runtime_error("striper setting is enabled, but libradosstriper was not compiled");
+#endif
 	    } else {
 	      formatter->dump_string("name", i->get_oid());
 	    }
@@ -2239,7 +2393,13 @@ static int rados_tool_common(const std::map < std::string, std::string > &opts,
     uint64_t size;
     time_t mtime;
     if (use_striper) {
+#ifdef WITH_LIBRADOSSTRIPER
       ret = striper.stat(oid, &size, &mtime);
+#else
+      cerr << "striping is enabled, but libradosstriper was not compiled" << std::endl;
+      ret = -1;
+      goto out;
+#endif
     } else {
       ret = io_ctx.stat(oid, &size, &mtime);
     }
@@ -2256,7 +2416,11 @@ static int rados_tool_common(const std::map < std::string, std::string > &opts,
   else if (strcmp(nargs[0], "get") == 0) {
     if (!pool_name || nargs.size() < 3)
       usage_exit();
+#ifdef WITH_LIBRADOSSTRIPER
     ret = do_get(io_ctx, striper, nargs[1], nargs[2], op_size, use_striper);
+#else
+    ret = do_get(io_ctx, nargs[1], nargs[2], op_size);
+#endif
     if (ret < 0) {
       cerr << "error getting " << pool_name << "/" << nargs[1] << ": " << cpp_strerror(ret) << std::endl;
       goto out;
@@ -2265,7 +2429,11 @@ static int rados_tool_common(const std::map < std::string, std::string > &opts,
   else if (strcmp(nargs[0], "put") == 0) {
     if (!pool_name || nargs.size() < 3)
       usage_exit();
+#ifdef WITH_LIBRADOSSTRIPER
     ret = do_put(io_ctx, striper, nargs[1], nargs[2], op_size, obj_offset, use_striper);
+#else
+    ret = do_put(io_ctx, nargs[1], nargs[2], op_size, obj_offset);
+#endif
     if (ret < 0) {
       cerr << "error putting " << pool_name << "/" << nargs[1] << ": " << cpp_strerror(ret) << std::endl;
       goto out;
@@ -2274,7 +2442,11 @@ static int rados_tool_common(const std::map < std::string, std::string > &opts,
   else if (strcmp(nargs[0], "append") == 0) {
     if (!pool_name || nargs.size() < 3)
       usage_exit();
+#ifdef WITH_LIBRADOSSTRIPER
     ret = do_append(io_ctx, striper, nargs[1], nargs[2], op_size, use_striper);
+#else
+    ret = do_append(io_ctx, nargs[1], nargs[2], op_size);
+#endif
     if (ret < 0) {
       cerr << "error appending " << pool_name << "/" << nargs[1] << ": " << cpp_strerror(ret) << std::endl;
       goto out;
@@ -2297,7 +2469,13 @@ static int rados_tool_common(const std::map < std::string, std::string > &opts,
       usage_exit();
     }
     if (use_striper) {
+#ifdef WITH_LIBRADOSSTRIPER
       ret = striper.trunc(oid, size);
+#else
+      cerr << "striper is enabled, but libradosstriper was not compiled" << std::endl;
+      ret = -1;
+      goto out;
+#endif
     } else {
       ret = io_ctx.trunc(oid, size);
     }
@@ -2328,7 +2506,13 @@ static int rados_tool_common(const std::map < std::string, std::string > &opts,
     }
 
     if (use_striper) {
+#ifdef WITH_LIBRADOSSTRIPER
       ret = striper.setxattr(oid, attr_name.c_str(), bl);
+#else
+      cerr << "striper is enabled, but libradosstriper was not compiled" << std::endl;
+      ret = -1;
+      goto out;
+#endif
     } else {
       ret = io_ctx.setxattr(oid, attr_name.c_str(), bl);
     }
@@ -2348,7 +2532,13 @@ static int rados_tool_common(const std::map < std::string, std::string > &opts,
 
     bufferlist bl;
     if (use_striper) {
+#ifdef WITH_LIBRADOSSTRIPER
       ret = striper.getxattr(oid, attr_name.c_str(), bl);
+#else
+      cerr << "striper is enabled, but libradosstriper was not compiled" << std::endl;
+      ret = -1;
+      goto out;
+#endif
     } else {
       ret = io_ctx.getxattr(oid, attr_name.c_str(), bl);
     }
@@ -2368,7 +2558,13 @@ static int rados_tool_common(const std::map < std::string, std::string > &opts,
     string attr_name(nargs[2]);
 
     if (use_striper) {
+#ifdef WITH_LIBRADOSSTRIPER
       ret = striper.rmxattr(oid, attr_name.c_str());
+#else
+      cerr << "striper is enabled, but libradosstriper was not compiled" << std::endl;
+      ret = -1;
+      goto out;
+#endif
     } else {
       ret = io_ctx.rmxattr(oid, attr_name.c_str());
     }
@@ -2384,7 +2580,13 @@ static int rados_tool_common(const std::map < std::string, std::string > &opts,
     map<std::string, bufferlist> attrset;
     bufferlist bl;
     if (use_striper) {
+#ifdef WITH_LIBRADOSSTRIPER
       ret = striper.getxattrs(oid, attrset);
+#else
+      cerr << "striper is enabled, but libradosstriper was not compiled" << std::endl;
+      ret = -1;
+      goto out;
+#endif
     } else {
       ret = io_ctx.getxattrs(oid, attrset);
     }
@@ -2634,11 +2836,17 @@ static int rados_tool_common(const std::map < std::string, std::string > &opts,
     for (; iter != nargs.end(); ++iter) {
       const string & oid = *iter;
       if (use_striper) {
+#ifdef WITH_LIBRADOSSTRIPER
 	if (forcefull) {
 	  ret = striper.remove(oid, CEPH_OSD_FLAG_FULL_FORCE);
 	} else {
 	  ret = striper.remove(oid);
 	}
+#else
+        cerr << "striper is enabled, but libradosstriper was not compiled" << std::endl;
+        ret = -1;
+        goto out;
+#endif
       } else {
 	if (forcefull) {
 	  ret = io_ctx.remove(oid, CEPH_OSD_FLAG_FULL_FORCE);
