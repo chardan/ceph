@@ -1801,7 +1801,10 @@ static int rados_tool_common(const std::map < std::string, std::string > &opts,
 
   Rados rados;
   IoCtx io_ctx;
+
+#ifdef WITH_LIBRADOSSTRIPER
   RadosStriper striper;
+#endif
 
   i = opts.find("create");
   if (i != opts.end()) {
