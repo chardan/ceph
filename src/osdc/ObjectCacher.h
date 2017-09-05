@@ -14,7 +14,10 @@
 #include "common/zipkin_trace.h"
 
 #include "Objecter.h"
+
+#ifdef WITH_LIBRADOSSTRIPER
 #include "Striper.h"
+#endif
 
 class CephContext;
 class WritebackHandler;
@@ -667,8 +670,12 @@ public:
   int file_is_cached(ObjectSet *oset, file_layout_t *layout,
 		     snapid_t snapid, loff_t offset, uint64_t len) {
     vector<ObjectExtent> extents;
+
+#ifdef WITH_LIBRADOSSTRIPER
     Striper::file_to_extents(cct, oset->ino, layout, offset, len,
 			     oset->truncate_size, extents);
+#endif
+
     return is_cached(oset, extents, snapid);
   }
 
@@ -676,8 +683,12 @@ public:
 		loff_t offset, uint64_t len, bufferlist *bl, int flags,
 		Context *onfinish) {
     OSDRead *rd = prepare_read(snapid, bl, flags);
+
+#ifdef WITH_LIBRADOSSTRIPER
     Striper::file_to_extents(cct, oset->ino, layout, offset, len,
 			     oset->truncate_size, rd->extents);
+#endif
+
     return readx(rd, oset, onfinish);
   }
 
@@ -685,8 +696,12 @@ public:
 		 const SnapContext& snapc, loff_t offset, uint64_t len,
 		 bufferlist& bl, ceph::real_time mtime, int flags) {
     OSDWrite *wr = prepare_write(snapc, bl, mtime, flags, 0);
+
+#ifdef WITH_LIBRADOSSTRIPER
     Striper::file_to_extents(cct, oset->ino, layout, offset, len,
 			     oset->truncate_size, wr->extents);
+#endif
+
     return writex(wr, oset, NULL);
   }
 
@@ -694,8 +709,12 @@ public:
 		  const SnapContext& snapc, loff_t offset, uint64_t len,
 		  Context *onfinish) {
     vector<ObjectExtent> extents;
+
+#ifdef WITH_LIBRADOSSTRIPER
     Striper::file_to_extents(cct, oset->ino, layout, offset, len,
 			     oset->truncate_size, extents);
+#endif
+
     ZTracer::Trace trace;
     return flush_set(oset, extents, &trace, onfinish);
   }

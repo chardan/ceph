@@ -35,7 +35,10 @@
 
 #include "osd/OSDMap.h"
 #include "Objecter.h"
+
+#ifdef WITH_LIBRADOSSTRIPER
 #include "Striper.h"
+#endif
 
 class Context;
 class Messenger;
@@ -128,7 +131,11 @@ class Filer {
 	   int op_flags = 0) {
     assert(snap);  // (until there is a non-NOSNAP write)
     vector<ObjectExtent> extents;
+
+#ifdef WITH_LIBRADOSSTRIPER
     Striper::file_to_extents(cct, ino, layout, offset, len, 0, extents);
+#endif
+
     objecter->sg_read(extents, snap, bl, flags, onfinish, op_flags);
   }
 
@@ -145,8 +152,13 @@ class Filer {
 		 int op_flags = 0) {
     assert(snap);  // (until there is a non-NOSNAP write)
     vector<ObjectExtent> extents;
+
+
+#ifdef WITH_LIBRADOSSTRIPER
     Striper::file_to_extents(cct, ino, layout, offset, len, truncate_size,
 			     extents);
+#endif
+
     objecter->sg_read_trunc(extents, snap, bl, flags,
 			    truncate_size, truncate_seq, onfinish, op_flags);
   }
@@ -162,7 +174,11 @@ class Filer {
 	    Context *oncommit,
 	    int op_flags = 0) {
     vector<ObjectExtent> extents;
+
+#ifdef WITH_LIBRADOSSTRIPER
     Striper::file_to_extents(cct, ino, layout, offset, len, 0, extents);
+#endif
+
     objecter->sg_write(extents, snapc, bl, mtime, flags, oncommit, op_flags);
   }
 
@@ -179,8 +195,12 @@ class Filer {
 		  Context *oncommit,
 		  int op_flags = 0) {
     vector<ObjectExtent> extents;
+
+#ifdef WITH_LIBRADOSSTRIPER
     Striper::file_to_extents(cct, ino, layout, offset, len, truncate_size,
 			     extents);
+#endif
+
     objecter->sg_write_trunc(extents, snapc, bl, mtime, flags,
 		       truncate_size, truncate_seq, oncommit, op_flags);
   }
@@ -206,7 +226,11 @@ class Filer {
 	   bool keep_first,
 	   Context *oncommit) {
     vector<ObjectExtent> extents;
+
+#ifdef WITH_LIBRADOSSTRIPER
     Striper::file_to_extents(cct, ino, layout, offset, len, 0, extents);
+#endif
+
     if (extents.size() == 1) {
       if (extents[0].offset == 0 && extents[0].length == layout->object_size
 	  && (!keep_first || extents[0].objectno != 0))

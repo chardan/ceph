@@ -15,9 +15,13 @@
 
 #include <mutex>
 #include <algorithm>
+
 #include "Filer.h"
 #include "osd/OSDMap.h"
+
+#ifdef WITH_LIBRADOSSTRIPER
 #include "Striper.h"
+#endif
 
 #include "messages/MOSDOp.h"
 #include "messages/MOSDOpReply.h"
@@ -152,8 +156,11 @@ void Filer::_probe(Probe *probe, Probe::unique_lock& pl)
   // map range onto objects
   probe->known_size.clear();
   probe->probing.clear();
+
+#ifdef WITH_LIBRADOSSTRIPER
   Striper::file_to_extents(cct, probe->ino, &probe->layout, probe->probing_off,
 			   probe->probing_len, 0, probe->probing);
+#endif
 
   std::vector<ObjectExtent> stat_extents;
   for (vector<ObjectExtent>::iterator p = probe->probing.begin();
@@ -411,6 +418,8 @@ void Filer::truncate(inodeno_t ino,
 		     Context *oncommit)
 {
   uint64_t period = layout->get_period();
+
+#ifdef WITH_LIBRADOSSTRIPER
   uint64_t num_objs = Striper::get_num_objects(*layout, len + (offset % period));
   if (num_objs == 1) {
     vector<ObjectExtent> extents;
@@ -423,6 +432,7 @@ void Filer::truncate(inodeno_t ino,
 		      flags, oncommit);
     return;
   }
+#endif
 
   if (len > 0 && (offset + len) % period)
     len += period - ((offset + len) % period);
@@ -464,8 +474,11 @@ void Filer::_do_truncate_range(TruncRange *tr, int fin)
     if (len > tr->length)
       len = tr->length;
 
+#ifdef WITH_LIBRADOSSTRIPER
     uint64_t offset = tr->offset + tr->length - len;
     Striper::file_to_extents(cct, tr->ino, &tr->layout, offset, len, 0, extents);
+#endif
+
     tr->uncommitted += extents.size();
     tr->length -= len;
   }

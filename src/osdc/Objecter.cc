@@ -4345,13 +4345,18 @@ void Objecter::_sg_read_finish(vector<ObjectExtent>& extents,
   ldout(cct, 15) << "_sg_read_finish" << dendl;
 
   if (extents.size() > 1) {
+
+#ifdef WITH_LIBRADOSSTRIPER
     Striper::StripedReadResult r;
+
     vector<bufferlist>::iterator bit = resultbl.begin();
     for (vector<ObjectExtent>::iterator eit = extents.begin();
 	 eit != extents.end();
 	 ++eit, ++bit) {
       r.add_partial_result(cct, *bit, eit->buffer_extents);
     }
+#endif
+
     bl->clear();
     r.assemble_result(cct, *bl, false);
   } else {
