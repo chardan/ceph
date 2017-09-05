@@ -277,8 +277,12 @@ uint32_t PurgeQueue::_calculate_ops(const PurgeItem &item) const
     ops_required = 1 + ls.size();
   } else {
     // File, work out concurrent Filer::purge deletes
+#ifdef WITH_LIBRADOSSTRIPER
     const uint64_t num = (item.size > 0) ?
       Striper::get_num_objects(item.layout, item.size) : 1;
+#else
+    const uint64_t num = (item.size > 0) ? item.size : 1;
+#endif
 
     ops_required = MIN(num, g_conf->filer_max_purge_ops);
 
@@ -396,7 +400,11 @@ void PurgeQueue::_execute_item(
   C_GatherBuilder gather(cct);
   if (item.action == PurgeItem::PURGE_FILE) {
     if (item.size > 0) {
+#ifdef WITH_LIBRADOSSTRIPER
       uint64_t num = Striper::get_num_objects(item.layout, item.size);
+#else
+      uint64_t num = (item.size > 0) ? item.size : 1;
+#endif
       dout(10) << " 0~" << item.size << " objects 0~" << num
                << " snapc " << item.snapc << " on " << item.ino << dendl;
       filer.purge_range(item.ino, &item.layout, item.snapc,
@@ -438,7 +446,11 @@ void PurgeQueue::_execute_item(
                        0, gather.new_sub());
     }
   } else if (item.action == PurgeItem::TRUNCATE_FILE) {
+#ifdef WITH_LIBRADOSSTRIPER
     const uint64_t num = Striper::get_num_objects(item.layout, item.size);
+#else
+    const uint64_t num = (item.size > 0) ? item.size : 1;
+#endif
     dout(10) << " 0~" << item.size << " objects 0~" << num
 	     << " snapc " << item.snapc << " on " << item.ino << dendl;
 
