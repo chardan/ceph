@@ -45,6 +45,8 @@ else()
   message(STATUS "No systemtype selected for building")
 endif(CMAKE_SYSTEM_NAME MATCHES "Linux")
 
+option(WITH_LIBRADOSSTRIPER "build libradosstriper" ON)
+
 option(WITH_CCACHE "Build with ccache.")
 if(WITH_CCACHE)
   find_program(CCACHE_FOUND ccache)
@@ -581,6 +583,8 @@ if(WITH_SELINUX)
   add_subdirectory(selinux)
 endif(WITH_SELINUX)
 
+option(WITH_LIBRADOSSTRIPER "build libradosstriper library and tools" ON)
+
 # enables testing and creates Make check command
 add_custom_target(tests
   COMMENT "Building tests")
@@ -610,3 +614,4 @@ add_tags(ctags
   EXCLUDE_OPTS ${CTAG_EXCLUDES}
   EXCLUDES "*.js" "*.css")
 add_custom_target(tags DEPENDS ctags)
+

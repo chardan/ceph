@@ -6,7 +6,13 @@ set(rados_srcs
   ${PROJECT_SOURCE_DIR}/src/common/util.cc
   ${PROJECT_SOURCE_DIR}/src/common/obj_bencher.cc)
 add_executable(rados ${rados_srcs})
+
+if(WITH_LIBRADOSSTRIPER)
 target_link_libraries(rados librados global ${BLKID_LIBRARIES} ${CMAKE_DL_LIBS} radosstriper)
+else()
+target_link_libraries(rados librados global ${BLKID_LIBRARIES} ${CMAKE_DL_LIBS})
+endif(WITH_LIBRADOSSTRIPER)
+
 install(TARGETS rados DESTINATION bin)
 
 if(WITH_TESTS)

@@ -37,7 +37,11 @@ endif(WITH_EMBEDDED)
 add_subdirectory(libcephfs)
 add_subdirectory(librados)
 add_subdirectory(librados_test_stub)
-add_subdirectory(libradosstriper)
+
+if(WITH_LIBRADOSSTRIPER)
+  add_subdirectory(libradosstriper)
+endif(WITH_LIBRADOSSTRIPER)
+
 if(WITH_RBD)
   add_subdirectory(librbd)
 endif(WITH_RBD)
@@ -628,12 +632,14 @@ add_ceph_unittest(unittest_workqueue ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/unittest_
 target_link_libraries(unittest_workqueue global ${BLKID_LIBRARIES})
 
 # unittest_striper
-add_executable(unittest_striper
-  test_striper.cc
-  $<TARGET_OBJECTS:unit-main>
-  )
-add_ceph_unittest(unittest_striper ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/unittest_striper)
-target_link_libraries(unittest_striper global ${BLKID_LIBRARIES})
+if(WITH_LIBRADOSSTRIPER)
+  add_executable(unittest_striper
+    test_striper.cc
+    $<TARGET_OBJECTS:unit-main>
+    )
+  add_ceph_unittest(unittest_striper ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/unittest_striper)
+  target_link_libraries(unittest_striper global ${BLKID_LIBRARIES})
+endif()
 
 # unittest_prebufferedstreambuf
 add_executable(unittest_prebufferedstreambuf

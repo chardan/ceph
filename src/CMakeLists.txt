@@ -529,7 +529,6 @@ set(libcommon_files
   common/Cycles.cc
   common/scrub_types.cc
   common/bit_str.cc
-  osdc/Striper.cc
   osdc/Objecter.cc
   common/Graylog.cc
   common/fs_types.cc
@@ -539,6 +538,10 @@ set(libcommon_files
   arch/probe.cc
   ${auth_files}
   ${mds_files})
+
+if(WITH_LIBRADOSSTRIPER)
+  list(APPEND libcommon_files osdc/Striper.cc)
+endif()
 
 if(HAS_VTA)
   set_source_files_properties(common/config.cc
@@ -682,7 +685,10 @@ add_library(rados_snap_set_diff_obj OBJECT librados/snap_set_diff.cc)
 
 add_subdirectory(include)
 add_subdirectory(librados)
-add_subdirectory(libradosstriper)
+
+if (WITH_LIBRADOSSTRIPER)
+  add_subdirectory(libradosstriper)
+endif (WITH_LIBRADOSSTRIPER)
 
 if (WITH_MGR)
   set(mgr_srcs
