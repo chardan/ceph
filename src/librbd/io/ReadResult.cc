@@ -99,10 +99,13 @@ void ReadResult::C_ImageReadRequest::finish(int r) {
     }
     assert(length == bl.length());
 
+#ifdef WITH_LIBRADOSSTRIPER
     aio_completion->lock.Lock();
     aio_completion->read_result.m_destriper.add_partial_result(
       cct, bl, image_extents);
     aio_completion->lock.Unlock();
+#endif
+
     r = length;
   }
 
@@ -129,8 +132,11 @@ void ReadResult::C_SparseReadRequestBase::finish(ExtentMap &extent_map,
       extent_map[offset] = bl.length();
     }
 
+#ifdef WITH_LIBRADOSSTRIPER
     aio_completion->read_result.m_destriper.add_partial_sparse_result(
       cct, bl, extent_map, offset, buffer_extents);
+#endif
+
     r = length;
   }
   aio_completion->lock.Unlock();
