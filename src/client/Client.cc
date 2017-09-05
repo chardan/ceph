@@ -3756,7 +3756,11 @@ void Client::_invalidate_inode_cache(Inode *in, int64_t off, int64_t len)
   // invalidate our userspace inode cache
   if (cct->_conf->client_oc) {
     vector<ObjectExtent> ls;
+
+#ifdef WITH_LIBRADOSSTRIPER
     Striper::file_to_extents(cct, in->ino, &in->layout, off, len, in->truncate_size, ls);
+#endif
+
     objectcacher->discard_set(&in->oset, ls);
   }
 
@@ -12762,6 +12766,8 @@ int Client::get_file_extent_osds(int fd, loff_t off, loff_t *len, vector<int>& o
   Inode *in = f->inode.get();
 
   vector<ObjectExtent> extents;
+
+#ifdef WITH_LIBRADOSSTRIPER
   Striper::file_to_extents(cct, in->ino, &in->layout, off, 1, in->truncate_size, extents);
   assert(extents.size() == 1);
 
@@ -12769,6 +12775,7 @@ int Client::get_file_extent_osds(int fd, loff_t off, loff_t *len, vector<int>& o
       pg_t pg = o.object_locator_to_pg(extents[0].oid, extents[0].oloc);
       o.pg_to_acting_osds(pg, osds);
     });
+#endif
 
   if (osds.empty())
     return -EINVAL;
@@ -12805,6 +12812,7 @@ int Client::get_osd_crush_location(int id, vector<pair<string, string> >& path)
     });
 }
 
+#ifdef WITH_LIBRADOSSTRIPER
 int Client::get_file_stripe_address(int fd, loff_t offset,
 				    vector<entity_addr_t>& address)
 {
@@ -12835,6 +12843,7 @@ int Client::get_file_stripe_address(int fd, loff_t offset,
       return 0;
     });
 }
+#endif
 
 int Client::get_osd_addr(int osd, entity_addr_t& addr)
 {
@@ -12858,8 +12867,10 @@ int Client::enumerate_layout(int fd, vector<ObjectExtent>& result,
     return -EBADF;
   Inode *in = f->inode.get();
 
+#ifdef WITH_LIBRADOSSTRIPER
   // map to a list of extents
   Striper::file_to_extents(cct, in->ino, &in->layout, offset, length, in->truncate_size, result);
+#endif
 
   ldout(cct, 3) << "enumerate_layout(" << fd << ", " << length << ", " << offset << ") = 0" << dendl;
   return 0;

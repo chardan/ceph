@@ -4358,7 +4358,10 @@ void Objecter::_sg_read_finish(vector<ObjectExtent>& extents,
 #endif
 
     bl->clear();
+
+#ifdef WITH_LIBRADOSSTRIPER
     r.assemble_result(cct, *bl, false);
+#endif
   } else {
     ldout(cct, 15) << "  only one frag" << dendl;
     bl->claim(resultbl[0]);
