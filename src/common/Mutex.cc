@@ -18,7 +18,7 @@
 #include "common/Clock.h"
 #include "common/valgrind.h"
 
-Mutex::Mutex(const std::string &n, bool r, bool ld,
+Old_Mutex::Old_Mutex(const std::string &n, bool r, bool ld,
 	     bool bt,
 	     CephContext *cct) :
   name(n), id(-1), recursive(r), lockdep(ld), backtrace(bt), nlock(0),
