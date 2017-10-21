@@ -81,7 +81,7 @@ public:
 
 struct RefCountedCond : public RefCountedObject {
   bool complete;
-  Mutex lock;
+  BasicMutex lock;
   Cond cond;
   int rval;
 

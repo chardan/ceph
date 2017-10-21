@@ -278,7 +278,7 @@ private:
   int prio_adjust = 0;
 
   /** Protects m_data */
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
 
   perf_counter_data_vec_t m_data;
 
@@ -342,7 +342,7 @@ private:
   CephContext *m_cct;
 
   /** Protects m_loggers */
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
 
   perf_counters_set_t m_loggers;
 
