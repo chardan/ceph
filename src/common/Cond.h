@@ -38,6 +38,7 @@ class Cond {
   }
 
 JFW I think this whole thing can be re-implemented as fut/prm
+JFW see std::condition_variable and std::condition_variable_any CppCinA
   int Wait(Mutex &mutex)  { 
     // make sure this cond is used with one mutex only
     assert(waiter_mutex == NULL || waiter_mutex == &mutex);
