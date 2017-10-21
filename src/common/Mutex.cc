@@ -87,9 +87,42 @@ Mutex::~Mutex() {
 }
 
 void Mutex::Lock(bool no_lockdep) {
-  int r;
 
-  if (lockdep && g_lockdep && !no_lockdep && !recursive) _will_lock();
+  if (lockdep && g_lockdep && !no_lockdep)
+   _will_lock();
+
+  if (logger && cct && cct->_conf->mutex_perf_counter) {
+    utime_t start;
+    // instrumented mutex enabled
+    start = ceph_clock_now();
+    if (TryLock()) 
+     return;
+
+    mtx.lock();
+
+    logger->tinc(l_mutex_wait,
+		 ceph_clock_now() - start);
+  } else {
+    mtx.lock();
+  }
+
+  if (lockdep && g_lockdep) 
+    _locked();
+
+  _post_lock();
+}
+
+void Mutex::Unlock() {
+  _pre_unlock();
+
+  if (lockdep && g_lockdep) 
+   _will_unlock();
+
+  mtx.unlock();
+}
+
+void RecursiveMutex::Lock(bool no_lockdep) {
+  int r;
 
   if (logger && cct && cct->_conf->mutex_perf_counter) {
     utime_t start;
@@ -115,9 +148,3 @@ out:
   ;
 }
 
-void Mutex::Unlock() {
-  _pre_unlock();
-  if (lockdep && g_lockdep) _will_unlock();
-  int r = pthread_mutex_unlock(&_m);
-  assert(r == 0);
-}

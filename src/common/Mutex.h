@@ -31,6 +31,176 @@ enum {
   l_mutex_last
 };
 
+class Mutex_Interface
+{
+  friend class Cond;
+ 
+  public:
+  using mutex_t	= void;
+  using Locker	= std::lock_guard<mutex_t>;
+
+  protected:
+  std::string name;
+
+  int id		= -1;
+
+  pthread_t locked_by;
+
+  // JFW: strongly suspect this should be atomic:
+  int nlock		= 0;	
+
+  bool lockdep		= true;
+  bool gather_backtrace	= false;	// gather backtrace on lock acquisition
+
+  CephContext *cct	= nullptr;
+  PerfCounters *logger	= nullptr;
+
+  private:
+  Mutex_Interface(Mutex_Interface&&)		= delete;
+  Mutex_Interface(const Mutex_Interface&)	= delete;
+  void operator=(const Mutex_Interface&)	= delete;
+
+  protected:
+  void _register() {
+    id = lockdep_register(name.c_str());
+  }
+  void _will_lock() { // about to lock
+    id = lockdep_will_lock(name.c_str(), id, gather_backtrace);
+  }
+  void _locked() {    // just locked
+    id = lockdep_locked(name.c_str(), id, gather_backtrace);
+  }
+  void _will_unlock() {  // about to unlock
+    id = lockdep_will_unlock(name.c_str(), id);
+  }
+
+  public:
+  Mutex_Interface(const std::string& name_)
+   : name(name_)
+  {
+/*
+	ANNOTATE_BENIGN_RACE_SIZED(&id, sizeof(id), "Mutex lockdep id");
+	ANNOTATE_BENIGN_RACE_SIZED(&nlock, sizeof(nlock), "Mutex nlock");
+	ANNOTATE_BENIGN_RACE_SIZED(&locked_by, sizeof(locked_by), "Mutex locked_by");
+*/
+// JFW: see if PTHREAD_MUTEX_ERRORCHECK matters here...
+	if (g_lockdep)	// JFW: not lockdep && g_lockdep, like elsewhere..?
+         _register();
+  }
+
+  virtual ~Mutex_Interface()
+  {
+   assert(nlock == 0);
+
+   if (lockdep && g_lockdep)
+    lockdep_unregister(id);
+  }
+
+#warning JFW get rid of these 
+  bool is_locked() const noexcept { return nlock > 0; }
+
+  virtual bool is_locked_by_me() noexcept	= 0;
+
+  virtual bool TryLock() 			= 0; 
+  virtual void Lock(bool no_lockdep = false) 	= 0;
+  virtual void Unlock()				= 0;
+
+  void lock()		{ return Lock(); };
+  void unlock()		{ return Unlock(); }
+
+  private:
+  virtual void post_lock() 			= 0;
+  virtual void pre_unlock()  			= 0;
+};
+
+class Mutex : public Mutex_Interface 
+{
+ friend class Cond;
+
+ public:
+ using mutex_t = std::mutex;
+ using Locker  = std::lock_guard<Mutex>;
+
+ private:
+ mutex_t mtx;
+
+ public:
+ Mutex(const std::string& name)
+  : Mutex_Interface(name)
+ {}
+
+ private:
+ ~Mutex() {
+/*
+   // helgrind gets confused by condition wakeups leading to mutex destruction
+   ANNOTATE_BENIGN_RACE_SIZED(mtx::native_handle(), sizeof(mtx::native_handle()), "Mutex primitive");
+*/
+ }
+
+ public:
+ virtual bool is_locked_by_me() noexcept {
+	return nlock > 0 && locked_by == pthread_self();
+ }
+
+ virtual bool TryLock() {
+    if(mtx.try_lock())
+     return true;
+
+    if (lockdep && g_lockdep)
+     _locked();
+
+    post_lock();
+
+    return false;
+  }
+
+ void Lock(bool no_lockdep = false);
+ void Unlock();
+
+ protected:
+ void post_lock() {
+	assert(0 == nlock);
+	locked_by = pthread_self();
+
+	nlock++;
+ }
+
+ // JFW: I don't think this makes any sense any more-- get rid of!
+ void pre_unlock() {
+	assert(1 == nlock);
+	nlock = 0;
+	
+	assert(pthread_self() == locked_by);
+
+	locked_by = 0;
+ }
+};
+
+class RecursiveMutex : public Mutex_Interface
+{
+ friend class Cond;
+ 
+ public:
+ using mutex_t = std::recursive_mutex;
+ using Locker  = std::lock_guard<mutex_t>;
+
+ public:
+ RecursiveMutex(const std::string& name)
+  : Mutex_Interface(name)
+ {}
+
+ private:
+ void post_lock() {
+	nlock++;
+ }
+ 
+ void pre_unlock() {
+	assert(0 < nlock);
+	nlock--;
+ } 
+};
+
+/*
 class Mutex {
   friend class Cond;
   
@@ -97,7 +267,7 @@ JFW
   bool is_locked() const noexcept { return nlock > 0; }
 
   bool is_locked_by_me() const noexcept {
-    return nlock > 0 && locked_by == mtx::native_handle();
+    return nlock > 0 && locked_by == mtx.native_handle();
   }
 
   bool TryLock() {
@@ -143,7 +313,9 @@ public:
     }
   };
 };
+*/
 
+/*
 class Old_Mutex {
 private:
   std::string name;
@@ -232,6 +404,6 @@ public:
     }
   };
 };
-
+*/
 
 #endif
