@@ -37,6 +37,7 @@ class Cond {
     pthread_cond_destroy(&_c); 
   }
 
+JFW I think this whole thing can be re-implemented as fut/prm
   int Wait(Mutex &mutex)  { 
     // make sure this cond is used with one mutex only
     assert(waiter_mutex == NULL || waiter_mutex == &mutex);
@@ -44,9 +45,9 @@ class Cond {
 
     assert(mutex.is_locked());
 
-    mutex._pre_unlock();
+    mutex.pre_unlock();
     int r = pthread_cond_wait(&_c, &mutex._m);
-    mutex._post_lock();
+    mutex.post_lock();
     return r;
   }
 
@@ -60,9 +61,9 @@ class Cond {
     struct timespec ts;
     when.to_timespec(&ts);
 
-    mutex._pre_unlock();
+    mutex.pre_unlock();
     int r = pthread_cond_timedwait(&_c, &mutex._m, &ts);
-    mutex._post_lock();
+    mutex.post_lock();
 
     return r;
   }
@@ -80,9 +81,9 @@ class Cond {
 
     struct timespec ts = ceph::real_clock::to_timespec(when);
 
-    mutex._pre_unlock();
+    mutex.pre_unlock();
     int r = pthread_cond_timedwait(&_c, &mutex._m, &ts);
-    mutex._post_lock();
+    mutex.post_lock();
 
     return r;
   }

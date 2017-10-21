@@ -309,8 +309,7 @@ public:
     return min_size ? std::min(min_size, size) : (size - size / 2);
   }
 
-  /** A lock that protects the md_config_t internals. It is
-   * recursive, for simplicity.
+  /** A lock that protects the md_config_t internals. 
    * It is best if this lock comes first in the lock hierarchy. We will
    * hold this lock when calling configuration observers.  */
   mutable Mutex lock;
