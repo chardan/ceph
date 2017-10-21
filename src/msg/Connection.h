@@ -39,7 +39,7 @@ class Message;
 class Messenger;
 
 struct Connection : public RefCountedObject {
-  mutable Mutex lock;
+  mutable BasicMutex lock;
   Messenger *msgr;
   RefCountedObject *priv;
   int peer_type;
