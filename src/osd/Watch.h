@@ -66,7 +66,7 @@ class Notify {
 
   OSDService *osd;
   CancelableContext *cb;
-  Mutex lock;
+  BasicMutex lock;
 
   /// (gid,cookie) -> reply_bl for everyone who acked the notify
   multimap<pair<uint64_t,uint64_t>,bufferlist> notify_replies;
