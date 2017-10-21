@@ -16,105 +16,97 @@
 #ifndef CEPH_COND_H
 #define CEPH_COND_H
 
+#include <condition_variable>
+
 #include "include/Context.h"
 
 class Cond {
-  // my bits
-  pthread_cond_t _c;
-
-  Mutex *waiter_mutex;
-
-  // don't allow copying.
-  void operator=(Cond &C);
-  Cond(const Cond &C);
+ private:
+ Cond(const Cond&)		= delete;
+ void operator=(const Cond&)	= delete;
 
  public:
-  Cond() : waiter_mutex(NULL) {
-    int r = pthread_cond_init(&_c,NULL);
-    assert(r == 0);
-  }
-  virtual ~Cond() { 
-    pthread_cond_destroy(&_c); 
-  }
+ Cond()		 = default;
+ virtual ~Cond() = default;
 
-  int Wait(Mutex &mutex)  { 
-    // make sure this cond is used with one mutex only
-    assert(waiter_mutex == NULL || waiter_mutex == &mutex);
-    waiter_mutex = &mutex;
+ public:
+ int Wait(std::mutex& mtx) {
+	std::condition_variable_any cv;
 
-    assert(mutex.is_locked());
+	std::unique_lock<std::mutex> l(mtx);
+ 
+	cv.wait(l);
 
-    mutex._pre_unlock();
-    int r = pthread_cond_wait(&_c, &mutex._m);
-    mutex._post_lock();
-    return r;
-  }
+	return 1; 
+ }
 
-  int WaitUntil(Mutex &mutex, utime_t when) {
-    // make sure this cond is used with one mutex only
-    assert(waiter_mutex == NULL || waiter_mutex == &mutex);
-    waiter_mutex = &mutex;
+ int Wait(BasicMutex& mtx) {
+	return Wait(mtx.mtx);
+ }
 
-    assert(mutex.is_locked());
+ int WaitUntil(std::mutex& mtx, const utime_t when) {
+	using namespace std::chrono;
 
-    struct timespec ts;
-    when.to_timespec(&ts);
+	std::condition_variable_any cv;
 
-    mutex._pre_unlock();
-    int r = pthread_cond_timedwait(&_c, &mutex._m, &ts);
-    mutex._post_lock();
+	std::unique_lock<std::mutex> l(mtx);
 
-    return r;
-  }
+	cv.wait_until(l, when.as_time_point());
 
-  int WaitInterval(Mutex &mutex, utime_t interval) {
-    utime_t when = ceph_clock_now();
-    when += interval;
-    return WaitUntil(mutex, when);
-  }
+	return 1; 
+ }
 
-  template<typename Duration>
-  int WaitInterval(Mutex &mutex, Duration interval) {
+ int WaitUntil(BasicMutex& mtx, const utime_t when) {
+	return WaitUntil(mtx.mtx, when);
+ }
+
+ int WaitInterval(std::mutex& mtx, const utime_t interval) {
+	return WaitUntil(mtx, ceph_clock_now() + interval);
+ }
+
+ int WaitInterval(BasicMutex& mtx, const utime_t interval) {
+ 	return WaitInterval(mtx.mtx, interval);
+ }
+
+ template <typename Duration>
+ int WaitInterval(BasicMutex& mtx, Duration interval) {
+/* JFW:
+        auto t = ceph::real_clock::now() + interval;
+	return WaitUntil(mtx, t); */
+
     ceph::real_time when(ceph::real_clock::now());
     when += interval;
 
     struct timespec ts = ceph::real_clock::to_timespec(when);
+    
+    return WaitUntil(mtx, ts);
 
-    mutex._pre_unlock();
-    int r = pthread_cond_timedwait(&_c, &mutex._m, &ts);
-    mutex._post_lock();
+ }
 
-    return r;
-  }
+ int SloppySignal() {
+	std::condition_variable_any cv;
+	return cv.notify_all(), 1;
+ }
 
-  int SloppySignal() { 
-    int r = pthread_cond_broadcast(&_c);
-    return r;
-  }
-  int Signal() { 
-    // make sure signaler is holding the waiter's lock.
-    assert(waiter_mutex == NULL ||
-	   waiter_mutex->is_locked());
+ int Signal() {
+#warning JFW attend to this... 
+/*
+        // make sure signaler is holding the waiter's lock.
+        assert(waiter_mutex == NULL ||
+	       waiter_mutex->is_locked());
+*/
+	std::condition_variable_any cv;
+	return cv.notify_all(), 1;
+ }
 
-    int r = pthread_cond_broadcast(&_c);
-    return r;
-  }
-  int SignalOne() { 
-    // make sure signaler is holding the waiter's lock.
-    assert(waiter_mutex == NULL ||
-	   waiter_mutex->is_locked());
+ int SignalAll() {
+	return Signal();
+ }
 
-    int r = pthread_cond_signal(&_c);
-    return r;
-  }
-  int SignalAll() { 
-    // make sure signaler is holding the waiter's lock.
-    assert(waiter_mutex == NULL ||
-	   waiter_mutex->is_locked());
-
-    int r = pthread_cond_broadcast(&_c);
-    return r;
-  }
+ int SignalOne() {
+	std::condition_variable_any cv;
+	return cv.notify_one(), 1;
+ }
 };
 
 /**
@@ -171,10 +163,10 @@ public:
  * until wait() returns.
  */
 class C_SaferCond : public Context {
-  Mutex lock;    ///< Mutex to take
-  Cond cond;     ///< Cond to signal
-  bool done;     ///< true after finish() has been called
-  int rval;      ///< return value
+  BasicMutex lock;    ///< Mutex to take
+  Cond cond;          ///< Cond to signal
+  bool done;          ///< true after finish() has been called
+  int rval;           ///< return value
 public:
   C_SaferCond() : lock("C_SaferCond"), done(false), rval(0) {}
   void finish(int r) override { complete(r); }
@@ -196,4 +188,103 @@ public:
   }
 };
 
+/* JFW
+class OLD_Cond {
+  // my bits
+  pthread_cond_t _c;
+
+  BasicMutex *waiter_mutex;
+
+  // don't allow copying.
+  void operator=(Cond &C);
+  Cond(const Cond &C);
+
+ public:
+  Cond() : waiter_mutex(NULL) {
+    int r = pthread_cond_init(&_c,NULL);
+    assert(r == 0);
+  }
+  virtual ~Cond() { 
+    pthread_cond_destroy(&_c); 
+  }
+
+  int Wait(BasicMutex &mutex)  { 
+    // make sure this cond is used with one mutex only
+    assert(waiter_mutex == NULL || waiter_mutex == &mutex);
+    waiter_mutex = &mutex;
+
+    assert(mutex.is_locked());
+
+    mutex._pre_unlock();
+    int r = pthread_cond_wait(&_c, &mutex._m);
+    mutex._post_lock();
+    return r;
+  }
+
+  int WaitUntil(BasicMutex &mutex, utime_t when) {
+    // make sure this cond is used with one mutex only
+    assert(waiter_mutex == NULL || waiter_mutex == &mutex);
+    waiter_mutex = &mutex;
+
+    assert(mutex.is_locked());
+
+    struct timespec ts;
+    when.to_timespec(&ts);
+
+    mutex._pre_unlock();
+    int r = pthread_cond_timedwait(&_c, &mutex._m, &ts);
+    mutex._post_lock();
+
+    return r;
+  }
+
+  int WaitInterval(BasicMutex &mutex, utime_t interval) {
+    utime_t when = ceph_clock_now();
+    when += interval;
+    return WaitUntil(mutex, when);
+  }
+
+  template<typename Duration>
+  int WaitInterval(BasicMutex &mutex, Duration interval) {
+    ceph::real_time when(ceph::real_clock::now());
+    when += interval;
+
+    struct timespec ts = ceph::real_clock::to_timespec(when);
+
+    mutex._pre_unlock();
+    int r = pthread_cond_timedwait(&_c, &mutex._m, &ts);
+    mutex._post_lock();
+
+    return r;
+  }
+
+  int SloppySignal() { 
+    int r = pthread_cond_broadcast(&_c);
+    return r;
+  }
+  int Signal() { 
+    // make sure signaler is holding the waiter's lock.
+    assert(waiter_mutex == NULL ||
+	   waiter_mutex->is_locked());
+
+    int r = pthread_cond_broadcast(&_c);
+    return r;
+  }
+  int SignalOne() { 
+    // make sure signaler is holding the waiter's lock.
+    assert(waiter_mutex == NULL ||
+	   waiter_mutex->is_locked());
+
+    int r = pthread_cond_signal(&_c);
+    return r;
+  }
+  int SignalAll() { 
+    // make sure signaler is holding the waiter's lock.
+    assert(waiter_mutex == NULL ||
+	   waiter_mutex->is_locked());
+
+    int r = pthread_cond_broadcast(&_c);
+    return r;
+  }
+};*/
 #endif
