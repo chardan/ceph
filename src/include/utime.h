@@ -397,6 +397,18 @@ public:
 
     return 0;
   }
+
+  std::chrono::system_clock::duration as_duration() const {
+	using namespace std::chrono;
+
+  	ceph_timespec ts = *this;
+
+	return seconds(ts.tv_sec) + nanoseconds(ts.tv_nsec);
+  }
+
+  std::chrono::system_clock::time_point as_time_point() const {
+        return std::chrono::system_clock::time_point { as_duration() };
+  }
 };
 WRITE_CLASS_ENCODER(utime_t)
 WRITE_CLASS_DENC(utime_t)
