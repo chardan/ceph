@@ -3794,7 +3794,7 @@ void Client::_flush_range(Inode *in, int64_t offset, uint64_t size)
     return;
   }
 
-  Mutex flock("Client::_flush_range flock");
+  BasicMutex flock("Client::_flush_range flock");
   Cond cond;
   bool safe = false;
   Context *onflush = new C_SafeCond(&flock, &cond, &safe);
@@ -3813,7 +3813,6 @@ void Client::_flush_range(Inode *in, int64_t offset, uint64_t size)
 
 void Client::flush_set_callback(ObjectCacher::ObjectSet *oset)
 {
-  //  Mutex::Locker l(client_lock);
   assert(client_lock.is_locked());   // will be called via dispatch() -> objecter -> ...
   Inode *in = static_cast<Inode *>(oset->parent);
   assert(in);
