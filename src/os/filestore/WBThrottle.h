@@ -80,7 +80,7 @@ class WBThrottle : Thread, public md_config_obs_t {
   CephContext *cct;
   PerfCounters *logger;
   bool stopping;
-  Mutex lock;
+  BasicMutex lock;
   Cond cond;
 
 

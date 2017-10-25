@@ -1937,7 +1937,7 @@ private:
   struct MempoolThread : public Thread {
     BlueStore *store;
     Cond cond;
-    Mutex lock;
+    BasicMutex lock;
     bool stop = false;
   public:
     explicit MempoolThread(BlueStore *s)

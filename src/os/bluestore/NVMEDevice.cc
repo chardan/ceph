@@ -478,7 +478,7 @@ class NVMEManager {
   };
 
  private:
-  Mutex lock;
+  BasicMutex lock;
   bool init = false;
   std::vector<SharedDriverData*> shared_driver_datas;
   std::thread dpdk_thread;

@@ -29,12 +29,12 @@ protected:
 
   class SubmitManager {
     CephContext* cct;
-    Mutex lock;
+    BasicMutex lock;
     uint64_t op_seq;
     uint64_t op_submitted;
   public:
     SubmitManager(CephContext* cct) :
-      cct(cct), lock("JOS::SubmitManager::lock", false, true, false, cct),
+      cct(cct), lock("JOS::SubmitManager::lock", cct),
       op_seq(0), op_submitted(0)
     {}
     uint64_t op_submit_start();
@@ -53,24 +53,24 @@ protected:
     Journal *&journal;
     Finisher &finisher;
 
-    Mutex apply_lock;
+    BasicMutex apply_lock;
     bool blocked;
     Cond blocked_cond;
     int open_ops;
     uint64_t max_applied_seq;
 
-    Mutex com_lock;
+    BasicMutex com_lock;
     map<version_t, vector<Context*> > commit_waiters;
     uint64_t committing_seq, committed_seq;
 
   public:
     ApplyManager(CephContext* cct, Journal *&j, Finisher &f) :
       cct(cct), journal(j), finisher(f),
-      apply_lock("JOS::ApplyManager::apply_lock", false, true, false, cct),
+      apply_lock("JOS::ApplyManager::apply_lock", cct),
       blocked(false),
       open_ops(0),
       max_applied_seq(0),
-      com_lock("JOS::ApplyManager::com_lock", false, true, false, cct),
+      com_lock("JOS::ApplyManager::com_lock", cct),
       committing_seq(0), committed_seq(0) {}
     void reset() {
       assert(open_ops == 0);

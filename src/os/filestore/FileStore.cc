@@ -4179,7 +4179,7 @@ void FileStore::start_sync(Context *onsafe)
 
 void FileStore::sync()
 {
-  Mutex l("FileStore::sync");
+  BasicMutex l("FileStore::sync");
   Cond c;
   bool done;
   C_SafeCond *fin = new C_SafeCond(&l, &c, &done);
@@ -4214,7 +4214,7 @@ void FileStore::flush()
 
   if (cct->_conf->filestore_blackhole) {
     // wait forever
-    Mutex lock("FileStore::flush::lock");
+    BasicMutex lock("FileStore::flush::lock");
     Cond cond;
     lock.Lock();
     while (true)

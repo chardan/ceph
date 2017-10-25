@@ -62,7 +62,7 @@ public:
   /**
    * Serializes access to next_seq as well as the in_use set
    */
-  Mutex header_lock;
+  BasicMutex header_lock;
   Cond header_cond;
   Cond map_header_cond;
 
@@ -366,7 +366,7 @@ public:
 private:
   /// Implicit lock on Header->seq
   typedef ceph::shared_ptr<_Header> Header;
-  Mutex cache_lock;
+  BasicMutex cache_lock;
   SimpleLRU<ghobject_t, _Header> caches;
 
   string map_header_key(const ghobject_t &oid);

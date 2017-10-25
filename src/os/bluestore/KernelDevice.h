@@ -31,7 +31,8 @@ class KernelDevice : public BlockDevice {
 
   std::string devname;  ///< kernel dev name (/sys/block/$devname), if any
 
-  Mutex debug_lock;
+  BasicMutex debug_lock;
+
   interval_set<uint64_t> debug_inflight;
 
   std::atomic<bool> io_since_flush = {false};

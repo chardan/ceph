@@ -194,11 +194,11 @@ private:
   int lock_fsid();
 
   // sync thread
-  Mutex lock;
+  BasicMutex lock;
   bool force_sync;
   Cond sync_cond;
 
-  Mutex sync_entry_timeo_lock;
+  BasicMutex sync_entry_timeo_lock;
   SafeTimer timer;
 
   list<Context*> sync_waiters;
@@ -224,14 +224,14 @@ private:
     ZTracer::Trace trace;
   };
   class OpSequencer : public Sequencer_impl {
-    Mutex qlock; // to protect q, for benefit of flush (peek/dequeue also protected by lock)
+    BasicMutex qlock; // to protect q, for benefit of flush (peek/dequeue also protected by lock)
     list<Op*> q;
     list<uint64_t> jq;
     list<pair<uint64_t, Context*> > flush_commit_waiters;
     Cond cond;
   public:
     Sequencer *parent;
-    Mutex apply_lock;  // for apply mutual exclusion
+    BasicMutex apply_lock;  // for apply mutual exclusion
     int id;
 
     /// get_max_uncompleted
@@ -350,9 +350,9 @@ private:
 
     OpSequencer(CephContext* cct, int i)
       : Sequencer_impl(cct),
-	qlock("FileStore::OpSequencer::qlock", false, false),
+	qlock("FileStore::OpSequencer::qlock", Mutex::lockdep_flag::disable),
 	parent(0),
-	apply_lock("FileStore::OpSequencer::apply_lock", false, false),
+	apply_lock("FileStore::OpSequencer::apply_lock", Mutex::lockdep_flag::disable),
         id(i) {}
     ~OpSequencer() override {
       assert(q.empty());
@@ -635,7 +635,7 @@ public:
   uint64_t estimate_objects_overhead(uint64_t num_objects) override;
 
   // DEBUG read error injection, an object is removed from both on delete()
-  Mutex read_error_lock;
+  BasicMutex read_error_lock;
   set<ghobject_t> data_error_set; // read() will return -EIO
   set<ghobject_t> mdata_error_set; // getattr(),stat() will return -EIO
   void inject_data_error(const ghobject_t &oid) override;

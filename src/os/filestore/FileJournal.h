@@ -67,12 +67,12 @@ public:
     write_item() : seq(0), orig_len(0) {}
   };
 
-  Mutex finisher_lock;
+  BasicMutex finisher_lock;
   Cond finisher_cond;
   uint64_t journaled_seq;
   bool plug_journal_completions;
 
-  Mutex writeq_lock;
+  BasicMutex writeq_lock;
   Cond writeq_cond;
   list<write_item> writeq;
   bool writeq_empty();
@@ -81,7 +81,7 @@ public:
   void batch_pop_write(list<write_item> &items);
   void batch_unpop_write(list<write_item> &items);
 
-  Mutex completions_lock;
+  BasicMutex completions_lock;
   list<completion_item> completions;
   bool completions_empty() {
     Mutex::Locker l(completions_lock);
@@ -266,7 +266,7 @@ private:
       delete[] iov;
     }
   };
-  Mutex aio_lock;
+  BasicMutex aio_lock;
   Cond aio_cond;
   Cond write_finish_cond;
   io_context_t aio_ctx;
@@ -321,7 +321,7 @@ private:
   JournalThrottle throttle;
 
   // write thread
-  Mutex write_lock;
+  BasicMutex write_lock;
   bool write_stop;
   bool aio_stop;
 
@@ -396,12 +396,11 @@ private:
   FileJournal(CephContext* cct, uuid_d fsid, Finisher *fin, Cond *sync_cond,
 	      const char *f, bool dio=false, bool ai=true, bool faio=false) :
     Journal(cct, fsid, fin, sync_cond),
-    finisher_lock("FileJournal::finisher_lock", false, true, false, cct),
+    finisher_lock("FileJournal::finisher_lock", cct),
     journaled_seq(0),
     plug_journal_completions(false),
-    writeq_lock("FileJournal::writeq_lock", false, true, false, cct),
-    completions_lock(
-      "FileJournal::completions_lock", false, true, false, cct),
+    writeq_lock("FileJournal::writeq_lock", cct),
+    completions_lock("FileJournal::completions_lock", cct),
     fn(f),
     zero_buf(NULL),
     max_size(0), block_size(0),
@@ -422,7 +421,7 @@ private:
     fd(-1),
     writing_seq(0),
     throttle(cct->_conf->filestore_caller_concurrency),
-    write_lock("FileJournal::write_lock", false, true, false, cct),
+    write_lock("FileJournal::write_lock", cct),
     write_stop(true),
     aio_stop(true),
     write_thread(this),
