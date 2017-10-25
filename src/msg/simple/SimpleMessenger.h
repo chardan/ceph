@@ -267,7 +267,7 @@ private:
   /// approximately unique ID set by the Constructor for use in entity_addr_t
   uint64_t nonce;
   /// overall lock used for SimpleMessenger data structures
-  Mutex lock;
+  BasicMutex lock;
   /// true, specifying we haven't learned our addr; set false when we find it.
   // maybe this should be protected by the lock?
   bool need_addr;

@@ -229,7 +229,7 @@ private:
   std::string ms_type;
 
   /// overall lock used for AsyncMessenger data structures
-  Mutex lock;
+  BasicMutex lock;
   // AsyncMessenger stuff
   /// approximately unique ID set by the Constructor for use in entity_addr_t
   uint64_t nonce;
@@ -290,7 +290,7 @@ private:
    * deleted for AsyncConnection. "_lookup_conn" must ensure not return a
    * AsyncConnection in this set.
    */
-  Mutex deleted_lock;
+  BasicMutex deleted_lock;
   set<AsyncConnectionRef> deleted_conns;
 
   EventCallbackRef reap_handler;

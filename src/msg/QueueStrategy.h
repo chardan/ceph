@@ -25,7 +25,7 @@
 namespace bi = boost::intrusive;
 
 class QueueStrategy : public DispatchStrategy {
-  Mutex lock;
+  BasicMutex lock;
   const int n_threads;
   bool stop;
 

@@ -48,7 +48,7 @@ class RDMADispatcher {
   std::atomic<uint64_t> num_dead_queue_pair = {0};
   std::atomic<uint64_t> num_qp_conn = {0};
   int post_backlog = 0;
-  Mutex lock; // protect `qp_conns`, `dead_queue_pairs`
+  BasicMutex lock; // protect `qp_conns`, `dead_queue_pairs`
   // qp_num -> InfRcConnection
   // The main usage of `qp_conns` is looking up connection by qp_num,
   // so the lifecycle of element in `qp_conns` is the lifecycle of qp.
@@ -72,7 +72,7 @@ class RDMADispatcher {
   std::vector<QueuePair*> dead_queue_pairs;
 
   std::atomic<uint64_t> num_pending_workers = {0};
-  Mutex w_lock; // protect pending workers
+  BasicMutex w_lock; // protect pending workers
   // fixme: lockfree
   std::list<RDMAWorker*> pending_workers;
   RDMAStack* stack;
@@ -133,7 +133,7 @@ class RDMAWorker : public Worker {
   EventCallbackRef tx_handler;
   std::list<RDMAConnectedSocketImpl*> pending_sent_conns;
   RDMADispatcher* dispatcher = nullptr;
-  Mutex lock;
+  BasicMutex lock;
 
   class C_handle_cq_tx : public EventCallback {
     RDMAWorker *worker;
@@ -184,7 +184,7 @@ class RDMAConnectedSocketImpl : public ConnectedSocketImpl {
   int notify_fd = -1;
   bufferlist pending_bl;
 
-  Mutex lock;
+  BasicMutex lock;
   std::vector<ibv_wc> wc;
   bool is_server;
   EventCallbackRef con_handler;

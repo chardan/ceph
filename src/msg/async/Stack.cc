@@ -182,7 +182,7 @@ void NetworkStack::stop()
 }
 
 class C_drain : public EventCallback {
-  Mutex drain_lock;
+  BasicMutex drain_lock;
   Cond drain_cond;
   unsigned drain_count;
 

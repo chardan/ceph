@@ -69,7 +69,7 @@ ostream& operator<<(ostream &out, const Pipe &pipe) {
 class Pipe::DelayedDelivery: public Thread {
   Pipe *pipe;
   std::deque< pair<utime_t,Message*> > delay_queue;
-  Mutex delay_lock;
+  BasicMutex delay_lock;
   Cond delay_cond;
   int flush_count;
   bool active_flush;

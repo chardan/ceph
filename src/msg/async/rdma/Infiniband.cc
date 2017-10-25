@@ -682,7 +682,7 @@ void *Infiniband::MemoryManager::mem_pool::slow_malloc()
 }
 
 Infiniband::MemoryManager::MemPoolContext *Infiniband::MemoryManager::PoolAllocator::g_ctx = nullptr;
-Mutex Infiniband::MemoryManager::PoolAllocator::lock("pool-alloc-lock");
+BasicMutex Infiniband::MemoryManager::PoolAllocator::lock("pool-alloc-lock");
 
 // lock is taken by mem_pool::slow_malloc()
 char *Infiniband::MemoryManager::PoolAllocator::malloc(const size_type bytes)

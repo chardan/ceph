@@ -235,7 +235,7 @@ class Infiniband {
       MemoryManager& manager;
       uint32_t buffer_size;
       uint32_t num_chunk = 0;
-      Mutex lock;
+      BasicMutex lock;
       std::vector<Chunk*> free_chunks;
       char *base = nullptr;
       char *end = nullptr;
@@ -274,7 +274,7 @@ class Infiniband {
       static void free(char * const block);
 
       static MemPoolContext  *g_ctx;
-      static Mutex lock;
+      static BasicMutex lock;
     };
 
     /**
@@ -364,7 +364,7 @@ class Infiniband {
   void wire_gid_to_gid(const char *wgid, union ibv_gid *gid);
   void gid_to_wire_gid(const union ibv_gid *gid, char wgid[]);
   CephContext *cct;
-  Mutex lock;
+  BasicMutex lock;
   bool initialized = false;
   const std::string &device_name;
   uint8_t port_num;

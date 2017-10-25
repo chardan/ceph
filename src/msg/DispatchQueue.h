@@ -63,7 +63,7 @@ class DispatchQueue {
     
   CephContext *cct;
   Messenger *msgr;
-  mutable Mutex lock;
+  mutable BasicMutex lock;
   Cond cond;
 
   PrioritizedQueue<QueueItem, uint64_t> mqueue;
@@ -103,7 +103,7 @@ class DispatchQueue {
     }
   } dispatch_thread;
 
-  Mutex local_delivery_lock;
+  BasicMutex local_delivery_lock;
   Cond local_delivery_cond;
   bool stop_local_delivery;
   list<pair<Message *, int> > local_messages;

@@ -22,7 +22,7 @@ class SimplePolicyMessenger : public Messenger
 {
 private:
   /// lock protecting policy
-  Mutex policy_lock;
+  BasicMutex policy_lock;
   /// the default Policy we use for Pipes
   Policy default_policy;
   /// map specifying different Policies for specific peer types

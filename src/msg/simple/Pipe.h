@@ -122,7 +122,7 @@ static const int SM_IOV_MAX = (IOV_MAX >= 1024 ? IOV_MAX / 4 : IOV_MAX);
     entity_addr_t peer_addr;
     Messenger::Policy policy;
     
-    Mutex pipe_lock;
+    BasicMutex pipe_lock;
     int state;
     std::atomic<bool> state_closed = { false }; // true iff state = STATE_CLOSED
 
