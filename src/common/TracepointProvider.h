@@ -6,6 +6,7 @@
 
 #include "common/config_obs.h"
 #include "common/Mutex.h"
+
 #include <dlfcn.h>
 
 struct md_config_t;
@@ -69,7 +70,7 @@ private:
   std::string m_library;
   mutable const char* m_config_keys[2];
 
-  Mutex m_lock;
+  BasicMutex m_lock;
   void* m_handle = nullptr;
 
   void verify_config(const struct md_config_t *conf);

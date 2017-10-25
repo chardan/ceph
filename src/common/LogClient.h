@@ -192,7 +192,7 @@ public:
 private:
   CephContext *cct;
   LogClient *parent;
-  Mutex channel_lock;
+  BasicMutex channel_lock;
   std::string log_channel;
   std::string log_prio;
   std::string syslog_facility;
@@ -261,7 +261,7 @@ private:
   Messenger *messenger;
   MonMap *monmap;
   bool is_mon;
-  Mutex log_lock;
+  BasicMutex log_lock;
   version_t last_log_sent;
   version_t last_log;
   std::deque<LogEntry> log_queue;

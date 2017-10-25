@@ -18,7 +18,7 @@
 
 class Semaphore
 {
-  Mutex m;
+  BasicMutex m;
   Cond c;
   int count;
 
@@ -48,4 +48,4 @@ class Semaphore
   }
 };
 
-#endif // !_Mutex_Posix_
+#endif // !_BasicMutex_Posix_

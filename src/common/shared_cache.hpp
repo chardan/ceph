@@ -29,7 +29,7 @@ class SharedLRU {
   CephContext *cct;
   typedef ceph::shared_ptr<V> VPtr;
   typedef ceph::weak_ptr<V> WeakVPtr;
-  Mutex lock;
+  BasicMutex lock;
   size_t max_size;
   Cond cond;
   unsigned size;

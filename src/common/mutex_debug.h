@@ -67,14 +67,14 @@ public:
   }
 };
 
-template<typename Mutex>
+template<typename BasicMutex>
 class mutex_debugging : public mutex_debugging_base {
-  Mutex* impl;
+  BasicMutex* impl;
 
 public:
   mutex_debugging(const std::string &n = std::string(), bool bt = false,
 		  CephContext *cct = nullptr) :
-    mutex_debugging_base(n, bt, cct), impl(static_cast<Mutex*>(this)) {}
+    mutex_debugging_base(n, bt, cct), impl(static_cast<BasicMutex*>(this)) {}
 
   ~mutex_debugging() = default;
 
@@ -135,7 +135,7 @@ private:
 public:
   static constexpr bool recursive = Recursive;
 
-  // Mutex concept is DefaultConstructible
+  // BasicMutex concept is DefaultConstructible
   mutex_debug_impl(const std::string &n = std::string(), bool bt = false,
 		   CephContext *cct = nullptr) :
     mutex_debugging<mutex_debug_impl<Recursive> >(n, bt, cct) {
@@ -150,23 +150,23 @@ public:
     r = pthread_mutex_init(&m, &a);
     assert(r == 0);
   }
-  // Mutex is Destructible
+  // BasicMutex is Destructible
   ~mutex_debug_impl() {
     int r = pthread_mutex_destroy(&m);
     assert(r == 0);
   }
 
-  // Mutex concept is non-Copyable
+  // BasicMutex concept is non-Copyable
   mutex_debug_impl(const mutex_debug_impl&) = delete;
   mutex_debug_impl& operator =(const mutex_debug_impl&) = delete;
 
-  // Mutex concept is non-Movable
+  // BasicMutex concept is non-Movable
   mutex_debug_impl(mutex_debug_impl&&) = delete;
   mutex_debug_impl& operator =(mutex_debug_impl&&) = delete;
 
   void lock_impl() {
     int r = pthread_mutex_lock(&m);
-    // Allowed error codes for Mutex concept
+    // Allowed error codes for BasicMutex concept
     if (unlikely(r == EPERM ||
 		 r == EDEADLK ||
 		 r == EBUSY)) {

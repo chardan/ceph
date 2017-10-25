@@ -13,7 +13,7 @@ class lru_map {
   std::map<K, entry> entries;
   std::list<K> entries_lru;
 
-  Mutex lock;
+  BasicMutex lock;
 
   size_t max;
 

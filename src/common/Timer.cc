@@ -37,7 +37,7 @@ public:
 typedef std::multimap < utime_t, Context *> scheduled_map_t;
 typedef std::map < Context*, scheduled_map_t::iterator > event_lookup_map_t;
 
-SafeTimer::SafeTimer(CephContext *cct_, Mutex &l, bool safe_callbacks)
+SafeTimer::SafeTimer(CephContext *cct_, BasicMutex &l, bool safe_callbacks)
   : cct(cct_), lock(l),
     safe_callbacks(safe_callbacks),
     thread(NULL),

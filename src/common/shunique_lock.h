@@ -43,12 +43,12 @@ struct acquire_shared_t { };
 constexpr acquire_unique_t acquire_unique { };
 constexpr acquire_shared_t acquire_shared { };
 
-template<typename Mutex>
+template<typename BasicMutex>
 class shunique_lock {
 public:
-  typedef Mutex mutex_type;
-  typedef std::unique_lock<Mutex> unique_lock_type;
-  typedef boost::shared_lock<Mutex> shared_lock_type;
+  typedef BasicMutex mutex_type;
+  typedef std::unique_lock<BasicMutex> unique_lock_type;
+  typedef boost::shared_lock<BasicMutex> shared_lock_type;
 
   shunique_lock() noexcept : m(nullptr), o(ownership::none) { }
 
@@ -384,9 +384,9 @@ private:
 } // namespace ceph
 
 namespace std {
-  template<typename Mutex>
-  void swap(ceph::shunique_lock<Mutex> sh1,
-	    ceph::shunique_lock<Mutex> sha) {
+  template<typename BasicMutex>
+  void swap(ceph::shunique_lock<BasicMutex> sh1,
+	    ceph::shunique_lock<BasicMutex> sha) {
     sh1.swap(sha);
   }
 } // namespace std

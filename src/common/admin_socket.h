@@ -94,7 +94,7 @@ private:
 
   bool in_hook;
   Cond in_hook_cond;
-  Mutex m_lock;    // protects m_hooks, m_descs, m_help
+  BasicMutex m_lock;    // protects m_hooks, m_descs, m_help
   AdminSocketHook *m_version_hook, *m_help_hook, *m_getdescs_hook;
 
   std::map<std::string,AdminSocketHook*> m_hooks;

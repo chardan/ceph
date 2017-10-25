@@ -56,7 +56,7 @@ protected:
 
   std::list<bufferlist> data;
 
-  Mutex m_lock;
+  BasicMutex m_lock;
   Cond cond;
 
   bufferlist delim;

@@ -44,41 +44,41 @@ namespace ceph {
 // let me change the mutex type later. It's inelegant and breaks down
 // if you have more than one type of mutex in the same class. So here
 // are some lock factories.
-template<typename Mutex, typename ...Args>
-inline auto uniquely_lock(Mutex&& m, Args&& ...args)
-  -> std::unique_lock<remove_reference_t<Mutex> > {
-  return std::unique_lock<remove_reference_t<Mutex> >(
-    std::forward<Mutex>(m), std::forward<Args>(args)... );
+template<typename BasicMutex, typename ...Args>
+inline auto uniquely_lock(BasicMutex&& m, Args&& ...args)
+  -> std::unique_lock<remove_reference_t<BasicMutex> > {
+  return std::unique_lock<remove_reference_t<BasicMutex> >(
+    std::forward<BasicMutex>(m), std::forward<Args>(args)... );
 }
 
-template<typename Mutex, typename ...Args>
-inline auto sharingly_lock(Mutex&& m, Args&& ...args)
-  -> boost::shared_lock<remove_reference_t<Mutex> > {
+template<typename BasicMutex, typename ...Args>
+inline auto sharingly_lock(BasicMutex&& m, Args&& ...args)
+  -> boost::shared_lock<remove_reference_t<BasicMutex> > {
   return
-    boost::shared_lock<remove_reference_t<Mutex> >(
-      std::forward<Mutex>(m), std::forward<Args>(args)...);
+    boost::shared_lock<remove_reference_t<BasicMutex> >(
+      std::forward<BasicMutex>(m), std::forward<Args>(args)...);
 }
 
-template<typename Mutex, typename ...Args>
-inline auto shuniquely_lock(std::unique_lock<Mutex>&& m, Args&& ...args)
-  -> shunique_lock<remove_reference_t<Mutex> > {
-  return shunique_lock<remove_reference_t<Mutex> >(
-    std::forward<std::unique_lock<Mutex> >(m), std::forward<Args>(args)...);
+template<typename BasicMutex, typename ...Args>
+inline auto shuniquely_lock(std::unique_lock<BasicMutex>&& m, Args&& ...args)
+  -> shunique_lock<remove_reference_t<BasicMutex> > {
+  return shunique_lock<remove_reference_t<BasicMutex> >(
+    std::forward<std::unique_lock<BasicMutex> >(m), std::forward<Args>(args)...);
 }
 
-template<typename Mutex, typename ...Args>
-inline auto shuniquely_lock(boost::shared_lock<Mutex>&& m, Args&& ...args)
-  -> shunique_lock<remove_reference_t<Mutex> > {
-  return shunique_lock<remove_reference_t<Mutex> >(
-    std::forward<boost::shared_lock<Mutex> >(m),
+template<typename BasicMutex, typename ...Args>
+inline auto shuniquely_lock(boost::shared_lock<BasicMutex>&& m, Args&& ...args)
+  -> shunique_lock<remove_reference_t<BasicMutex> > {
+  return shunique_lock<remove_reference_t<BasicMutex> >(
+    std::forward<boost::shared_lock<BasicMutex> >(m),
     std::forward<Args>(args)...);
 }
 
-template<typename Mutex, typename ...Args>
-inline auto shuniquely_lock(Mutex&& m, Args&& ...args)
-  -> shunique_lock<remove_reference_t<Mutex> > {
-  return shunique_lock<remove_reference_t<Mutex> >(
-    std::forward<Mutex>(m), std::forward<Args>(args)...);
+template<typename BasicMutex, typename ...Args>
+inline auto shuniquely_lock(BasicMutex&& m, Args&& ...args)
+  -> shunique_lock<remove_reference_t<BasicMutex> > {
+  return shunique_lock<remove_reference_t<BasicMutex> >(
+    std::forward<BasicMutex>(m), std::forward<Args>(args)...);
 }
 
 // All right! These two don't work like the others. You cannot do
@@ -102,14 +102,14 @@ inline auto shuniquely_lock(Mutex&& m, Args&& ...args)
 // they'll also implement C++17 people might not care.
 //
 
-template<typename Mutex>
-inline auto guardedly_lock(Mutex&& m)
-  -> std::lock_guard<remove_reference_t<Mutex> > {
+template<typename BasicMutex>
+inline auto guardedly_lock(BasicMutex&& m)
+  -> std::lock_guard<remove_reference_t<BasicMutex> > {
   m.lock();
   // So the way this works is that Copy List Initialization creates
   // one and only one Temporary. There is no implicit copy that is
   // generally optimized away the way there is if we were to just try
-  // something like `return std::lock_guard<Mutex>(m)`.
+  // something like `return std::lock_guard<BasicMutex>(m)`.
   //
   // The function then returns this temporary as a prvalue. We cannot
   // bind it to a variable, because that would implicitly copy it
@@ -121,29 +121,29 @@ inline auto guardedly_lock(Mutex&& m)
   // wonky syntax. The need to use [[gnu::unused]] is honestly the
   // worst part. It makes this construction unfortunately rather
   // long.
-  return { std::forward<Mutex>(m), std::adopt_lock };
+  return { std::forward<BasicMutex>(m), std::adopt_lock };
 }
 
-template<typename Mutex>
-inline auto guardedly_lock(Mutex&& m, std::adopt_lock_t)
-  -> std::lock_guard<remove_reference_t<Mutex> > {
-  return { std::forward<Mutex>(m), std::adopt_lock };
+template<typename BasicMutex>
+inline auto guardedly_lock(BasicMutex&& m, std::adopt_lock_t)
+  -> std::lock_guard<remove_reference_t<BasicMutex> > {
+  return { std::forward<BasicMutex>(m), std::adopt_lock };
 }
 
-template<typename Mutex, typename Fun, typename...Args>
-inline auto with_unique_lock(Mutex&& mutex, Fun&& fun, Args&&... args)
+template<typename BasicMutex, typename Fun, typename...Args>
+inline auto with_unique_lock(BasicMutex&& mutex, Fun&& fun, Args&&... args)
   -> decltype(fun(std::forward<Args>(args)...)) {
   // Yes I know there's a lock guard inside and not a unique lock, but
   // the caller doesn't need to know or care about the internal
   // details, and the semantics are those of unique locking.
-  [[gnu::unused]] auto&& l = guardedly_lock(std::forward<Mutex>(mutex));
+  [[gnu::unused]] auto&& l = guardedly_lock(std::forward<BasicMutex>(mutex));
   return std::forward<Fun>(fun)(std::forward<Args>(args)...);
 }
 
-template<typename Mutex, typename Fun, typename...Args>
-inline auto with_shared_lock(Mutex&& mutex, Fun&& fun, Args&&... args)
+template<typename BasicMutex, typename Fun, typename...Args>
+inline auto with_shared_lock(BasicMutex&& mutex, Fun&& fun, Args&&... args)
   -> decltype(fun(std::forward<Args>(args)...)) {
-  auto l = sharingly_lock(std::forward<Mutex>(mutex));
+  auto l = sharingly_lock(std::forward<BasicMutex>(mutex));
   return std::forward<Fun>(fun)(std::forward<Args>(args)...);
 }
 }

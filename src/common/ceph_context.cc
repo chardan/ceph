@@ -174,7 +174,7 @@ public:
   }
 
 private:
-  Mutex _lock;
+  BasicMutex _lock;
   Cond _cond;
   bool _reopen_logs;
   bool _exit_thread;

@@ -32,7 +32,7 @@ mutex_debugging_base::mutex_debugging_base(const std::string &n, bool bt,
   if (n.empty()) {
     uuid_d uu;
     uu.generate_random();
-    name = string("Unnamed-Mutex-") + uu.to_string();
+    name = string("Unnamed-BasicMutex-") + uu.to_string();
   } else {
     name = n;
   }

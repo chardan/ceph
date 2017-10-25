@@ -128,7 +128,7 @@ void OpHistory::dump_ops_by_duration(utime_t now, Formatter *f, set<string> filt
 }
 
 struct ShardedTrackingData {
-  Mutex ops_in_flight_lock_sharded;
+  BasicMutex ops_in_flight_lock_sharded;
   TrackedOp::tracked_op_list_t ops_in_flight_sharded;
   explicit ShardedTrackingData(string lock_name):
       ops_in_flight_lock_sharded(lock_name.c_str()) {}

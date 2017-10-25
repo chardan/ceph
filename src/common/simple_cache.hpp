@@ -20,7 +20,7 @@
 
 template <class K, class V, class C = std::less<K>, class H = std::hash<K> >
 class SimpleLRU {
-  Mutex lock;
+  BasicMutex lock;
   size_t max_size;
   ceph::unordered_map<K, typename list<pair<K, V> >::iterator, H> contents;
   list<pair<K, V> > lru;

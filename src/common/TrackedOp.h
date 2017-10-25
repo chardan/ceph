@@ -28,7 +28,7 @@ class OpHistory {
   set<pair<utime_t, TrackedOpRef> > arrived;
   set<pair<double, TrackedOpRef> > duration;
   set<pair<utime_t, TrackedOpRef> > slow_op;
-  Mutex ops_history_lock;
+  BasicMutex ops_history_lock;
   void cleanup(utime_t now);
   bool shutdown;
   uint32_t history_size;
@@ -209,7 +209,7 @@ protected:
   };
 
   vector<Event> events;    ///< list of events and their times
-  mutable Mutex lock = {"TrackedOp::lock"}; ///< to protect the events list
+  mutable BasicMutex lock = {"TrackedOp::lock"}; ///< to protect the events list
   const char *current = 0; ///< the current state the event is in
   uint64_t seq = 0;        ///< a unique value set by the OpTracker
 

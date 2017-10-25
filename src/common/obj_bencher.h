@@ -68,7 +68,7 @@ class ObjBencher {
 public:
   CephContext *cct;
 protected:
-  Mutex lock;
+  BasicMutex lock;
 
   static void *status_printer(void *bencher);
 

@@ -339,7 +339,7 @@ int lockdep_will_lock(const char *name, int id, bool force_backtrace)
 
 	lockdep_dout(0) << "\n" << dendl;
 
-	// don't add this dependency, or we'll get aMutex. cycle in the graph, and
+	// don't add this dependency, or we'll get aBasicMutex. cycle in the graph, and
 	// does_follow() won't terminate.
 
 	ceph_abort();  // actually, we should just die here.

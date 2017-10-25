@@ -11,7 +11,7 @@
 template <class T>
 class QueueRing {
   struct QueueBucket {
-    Mutex lock;
+    BasicMutex lock;
     Cond cond;
     typename std::list<T> entries;
 

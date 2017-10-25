@@ -31,7 +31,7 @@ public:
   typedef ceph::weak_ptr<V> WeakVPtr;
   int waiting;
 private:
-  Mutex lock;
+  BasicMutex lock;
   Cond cond;
   map<K, pair<WeakVPtr, V*>, C> contents;
 

@@ -33,7 +33,7 @@ class AsyncReserver {
   Finisher *f;
   unsigned max_allowed;
   unsigned min_priority;
-  Mutex lock;
+  BasicMutex lock;
 
   struct Reservation {
     T item;

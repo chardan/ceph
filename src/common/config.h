@@ -319,7 +319,7 @@ public:
   /** A lock that protects the md_config_t internals. 
    * It is best if this lock comes first in the lock hierarchy. We will
    * hold this lock when calling configuration observers.  */
-  mutable BasicMutex lock;
+  mutable RecursiveMutex lock;
 
   friend class test_md_config_t;
 };

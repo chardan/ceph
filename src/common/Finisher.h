@@ -36,7 +36,7 @@ enum {
  */
 class Finisher {
   CephContext *cct;
-  Mutex        finisher_lock; ///< Protects access to queues and finisher_running.
+  BasicMutex   finisher_lock; ///< Protects access to queues and finisher_running.
   Cond         finisher_cond; ///< Signaled when there is something to process.
   Cond         finisher_empty_cond; ///< Signaled when the finisher has nothing more to process.
   bool         finisher_stop; ///< Set when the finisher should stop.

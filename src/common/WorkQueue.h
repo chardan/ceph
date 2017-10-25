@@ -29,7 +29,7 @@ class ThreadPool : public md_config_obs_t {
   string name;
   string thread_name;
   string lockname;
-  Mutex _lock;
+  BasicMutex _lock;
   Cond _cond;
   bool _stop;
   int _pause;
@@ -179,7 +179,7 @@ public:
    * construction and remove itself on destruction. */
   template<typename T, typename U = T>
   class WorkQueueVal : public WorkQueue_ {
-    Mutex _lock;
+    BasicMutex _lock;
     ThreadPool *pool;
     list<U> to_process;
     list<U> to_finish;
@@ -315,7 +315,7 @@ public:
       pool->_lock.Unlock();
     }
 
-    Mutex &get_lock() {
+    BasicMutex &get_lock() {
       return pool->_lock;
     }
 
@@ -426,7 +426,7 @@ public:
       Mutex::Locker pool_locker(m_pool->_lock);
       m_pool->_cond.SignalOne();
     }
-    Mutex &get_pool_lock() {
+    BasicMutex &get_pool_lock() {
       return m_pool->_lock;
     }
   private:
@@ -611,7 +611,7 @@ protected:
     ctx->complete(result);
   }
 private:
-  Mutex m_lock;
+  BasicMutex m_lock;
   ceph::unordered_map<Context*, int> m_context_results;
 };
 
@@ -621,7 +621,7 @@ class ShardedThreadPool {
   string name;
   string thread_name;
   string lockname;
-  Mutex shardedpool_lock;
+  BasicMutex shardedpool_lock;
   Cond shardedpool_cond;
   Cond wait_cond;
   uint32_t num_threads;

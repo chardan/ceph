@@ -129,7 +129,7 @@ class DNSResolver {
     DNSResolver() : lock("DNSResolver") { resolv_h = new ResolvHWrapper(); }
     ~DNSResolver();
 
-    Mutex lock;
+    BasicMutex lock;
     ResolvHWrapper *resolv_h;
 #ifdef HAVE_RES_NQUERY
     std::list<res_state> states;
