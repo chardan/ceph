@@ -398,7 +398,7 @@ class ObjectCacher {
   bool scattered_write;
 
   string name;
-  Mutex& lock;
+  BasicMutex& lock;
 
   uint64_t max_dirty, target_dirty, max_size, max_objects;
   ceph::timespan max_dirty_age;
@@ -575,7 +575,7 @@ class ObjectCacher {
 
 
 
-  ObjectCacher(CephContext *cct_, string name, WritebackHandler& wb, Mutex& l,
+  ObjectCacher(CephContext *cct_, string name, WritebackHandler& wb, BasicMutex& l,
 	       flush_set_callback_t flush_callback,
 	       void *flush_callback_arg,
 	       uint64_t max_bytes, uint64_t max_objects,

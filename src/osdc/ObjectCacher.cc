@@ -609,7 +609,7 @@ void ObjectCacher::Object::discard(loff_t off, loff_t len)
 
 
 ObjectCacher::ObjectCacher(CephContext *cct_, string name,
-			   WritebackHandler& wb, Mutex& l,
+			   WritebackHandler& wb, BasicMutex& l,
 			   flush_set_callback_t flush_callback,
 			   void *flush_callback_arg, uint64_t max_bytes,
 			   uint64_t max_objects, uint64_t max_dirty,

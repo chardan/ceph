@@ -1907,7 +1907,7 @@ void Objecter::wait_for_osd_map()
   }
 
   // Leave this since it goes with C_SafeCond
-  Mutex lock("");
+  BasicMutex lock("Objecter_Lock");
   Cond cond;
   bool done;
   lock.Lock();
