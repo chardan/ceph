@@ -46,7 +46,7 @@ protected:
   LogClient log_client;
   LogChannelRef clog, audit_clog;
 
-  Mutex lock;
+  BasicMutex lock;
   SafeTimer timer;
 
   PyModuleRegistry py_module_registry;

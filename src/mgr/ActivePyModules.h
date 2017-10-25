@@ -44,8 +44,9 @@ class ActivePyModules
   Client   &client;
   Finisher &finisher;
 
+  std::string get_site_packages();
 
-  mutable Mutex lock{"ActivePyModules::lock"};
+  mutable BasicMutex lock{"ActivePyModules::lock"};
 
 public:
   ActivePyModules(PyModuleConfig const &config_,

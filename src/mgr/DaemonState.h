@@ -86,7 +86,7 @@ class DaemonPerfCounters
 class DaemonState
 {
   public:
-  Mutex lock = {"DaemonState::lock"};
+  BasicMutex lock = {"DaemonState::lock"};
 
   DaemonKey key;
 

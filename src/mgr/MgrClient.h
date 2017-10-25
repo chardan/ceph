@@ -56,7 +56,7 @@ protected:
 
   unique_ptr<MgrSessionState> session;
 
-  Mutex lock = {"MgrClient::lock"};
+  BasicMutex lock = {"MgrClient::lock"};
 
   uint32_t stats_period = 0;
   uint32_t stats_threshold = 0;

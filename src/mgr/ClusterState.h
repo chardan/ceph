@@ -39,7 +39,7 @@ protected:
   Objecter *objecter;
   FSMap fsmap;
   ServiceMap servicemap;
-  mutable Mutex lock;
+  mutable BasicMutex lock;
 
   MgrMap mgr_map;
 

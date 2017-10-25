@@ -75,7 +75,7 @@ protected:
 
   epoch_t pending_service_map_dirty = 0;
 
-  Mutex lock;
+  BasicMutex lock;
 
   static void _generate_command_map(map<string,cmd_vartype>& cmdmap,
                                     map<string,string> &param_str_map);

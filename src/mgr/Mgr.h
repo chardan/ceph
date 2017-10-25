@@ -51,7 +51,7 @@ protected:
   Client    *client;
   Messenger *client_messenger;
 
-  mutable Mutex lock;
+  mutable BasicMutex lock;
   SafeTimer timer;
   Finisher finisher;
 
