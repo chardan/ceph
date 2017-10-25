@@ -92,7 +92,7 @@ class RocksDBStore : public KeyValueDB {
   int load_rocksdb_options(bool create_if_missing, rocksdb::Options& opt);
 
   // manage async compactions
-  Mutex compact_queue_lock;
+  BasicMutex compact_queue_lock;
   Cond compact_queue_cond;
   list< pair<string,string> > compact_queue;
   bool compact_queue_stop;
