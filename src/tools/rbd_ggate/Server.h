@@ -56,7 +56,7 @@ private:
   Driver *m_drv;
   librbd::Image &m_image;
 
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
   Cond m_cond;
   bool m_stopping = false;
   ThreadHelper m_reader_thread, m_writer_thread;

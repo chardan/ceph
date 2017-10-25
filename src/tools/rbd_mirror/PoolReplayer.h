@@ -115,7 +115,7 @@ private:
   peer_t m_peer;
   std::vector<const char*> m_args;
 
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
   Cond m_cond;
   std::atomic<bool> m_stopping = { false };
   bool m_manual_stop = false;

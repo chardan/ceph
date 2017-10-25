@@ -172,7 +172,7 @@ private:
 
   friend std::ostream &operator<<(std::ostream &os, const IOContext &ctx);
 
-  Mutex lock;
+  BasicMutex lock;
   Cond cond;
   xlist<IOContext*> io_pending;
   xlist<IOContext*> io_finished;

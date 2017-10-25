@@ -111,7 +111,7 @@ private:
   ImageIds m_refresh_image_ids;
   bufferlist m_out_bl;
 
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
 
   Context *m_on_init_finish = nullptr;
 

@@ -194,7 +194,7 @@ private:
   Threads<ImageCtxT> *m_threads;
   Listener *m_listener;
 
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
   uint64_t m_notifier_id;
   LeaderLock *m_leader_lock;
   Context *m_on_finish = nullptr;
@@ -211,8 +211,8 @@ private:
 
   librbd::watcher::NotifyResponse m_heartbeat_response;
 
-  bool is_leader(Mutex &m_lock) const;
-  bool is_releasing_leader(Mutex &m_lock) const;
+  bool is_leader(BasicMutex &m_lock) const;
+  bool is_releasing_leader(BasicMutex &m_lock) const;
 
   void cancel_timer_task();
   void schedule_timer_task(const std::string &name,

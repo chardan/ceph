@@ -68,7 +68,7 @@ private:
   RadosRef m_rados;
   Threads<ImageCtxT>* m_threads;
 
-  Mutex m_lock;
+  BasicMutex m_lock;
   Pools m_pools;
   uint64_t m_callout_id = service_daemon::CALLOUT_ID_NONE;
 

@@ -28,7 +28,7 @@ using librados::IoCtx;
 namespace rbd {
 namespace mirror {
 
-ClusterWatcher::ClusterWatcher(RadosRef cluster, Mutex &lock,
+ClusterWatcher::ClusterWatcher(RadosRef cluster, BasicMutex &lock,
                                ServiceDaemon<librbd::ImageCtx>* service_daemon)
   : m_cluster(cluster), m_lock(lock), m_service_daemon(service_daemon)
 {

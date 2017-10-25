@@ -159,7 +159,7 @@ private:
   InstanceReplayer<ImageCtxT> *m_instance_replayer;
   std::string m_instance_id;
 
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
   librbd::ManagedLock<ImageCtxT> *m_instance_lock;
   Context *m_on_finish = nullptr;
   int m_ret_val = 0;

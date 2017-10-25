@@ -28,7 +28,7 @@
 
 int Resetter::reset(mds_role_t role)
 {
-  Mutex mylock("Resetter::reset::lock");
+  BasicMutex mylock("Resetter::reset::lock");
   Cond cond;
   bool done;
   int r;

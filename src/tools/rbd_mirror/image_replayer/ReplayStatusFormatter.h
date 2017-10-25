@@ -38,7 +38,7 @@ public:
 private:
   Journaler *m_journaler;
   std::string m_mirror_uuid;
-  Mutex m_lock;
+  BasicMutex m_lock;
   Context *m_on_finish = nullptr;
   cls::journal::ObjectPosition m_master_position;
   cls::journal::ObjectPosition m_mirror_position;

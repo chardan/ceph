@@ -606,7 +606,7 @@ public:
     return total;
   }
 
-  Mutex lock;
+  BasicMutex lock;
   Cond cond;
 
   explicit LoadGen(Rados *_rados) : rados(_rados), going_down(false), lock("LoadGen") {

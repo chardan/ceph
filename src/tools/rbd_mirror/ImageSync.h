@@ -15,6 +15,9 @@
 
 class Context;
 class ContextWQ;
+class BasicMutex;
+class SafeTimer;
+
 namespace journal { class Journaler; }
 namespace librbd { class ProgressContext; }
 namespace librbd { template <typename> class DeepCopyRequest; }
@@ -36,7 +39,8 @@ public:
 
   static ImageSync* create(ImageCtxT *local_image_ctx,
                            ImageCtxT *remote_image_ctx,
-                           SafeTimer *timer, Mutex *timer_lock,
+                           SafeTimer *timer, 
+                           Mutex *timer_lock,
                            const std::string &mirror_uuid,
                            Journaler *journaler,
                            MirrorPeerClientMeta *client_meta,
@@ -50,7 +54,7 @@ public:
   }
 
   ImageSync(ImageCtxT *local_image_ctx, ImageCtxT *remote_image_ctx,
-            SafeTimer *timer, Mutex *timer_lock, const std::string &mirror_uuid,
+            SafeTimer *timer, BasicMutex *timer_lock, const std::string &mirror_uuid,
             Journaler *journaler, MirrorPeerClientMeta *client_meta,
             ContextWQ *work_queue, InstanceWatcher<ImageCtxT> *instance_watcher,
             Context *on_finish, ProgressContext *progress_ctx = nullptr);
@@ -99,7 +103,7 @@ private:
   ImageCtxT *m_local_image_ctx;
   ImageCtxT *m_remote_image_ctx;
   SafeTimer *m_timer;
-  Mutex *m_timer_lock;
+  BasicMutex *m_timer_lock;
   std::string m_mirror_uuid;
   Journaler *m_journaler;
   MirrorPeerClientMeta *m_client_meta;
@@ -109,7 +113,7 @@ private:
 
   SnapMap m_snap_map;
 
-  Mutex m_lock;
+  BasicMutex m_lock;
   bool m_canceled = false;
 
   librbd::DeepCopyRequest<ImageCtxT> *m_image_copy_request = nullptr;

@@ -254,7 +254,7 @@ bool LeaderWatcher<I>::is_leader() const {
 }
 
 template <typename I>
-bool LeaderWatcher<I>::is_leader(Mutex &lock) const {
+bool LeaderWatcher<I>::is_leader(BasicMutex &lock) const {
   assert(m_lock.is_locked());
 
   bool leader = m_leader_lock->is_leader();
@@ -270,7 +270,7 @@ bool LeaderWatcher<I>::is_releasing_leader() const {
 }
 
 template <typename I>
-bool LeaderWatcher<I>::is_releasing_leader(Mutex &lock) const {
+bool LeaderWatcher<I>::is_releasing_leader(BasicMutex &lock) const {
   assert(m_lock.is_locked());
 
   bool releasing = m_leader_lock->is_releasing_leader();

@@ -91,7 +91,7 @@ private:
   std::string m_local_mirror_uuid;
   int64_t m_local_pool_id;
 
-  Mutex m_lock;
+  BasicMutex m_lock;
   AsyncOpTracker m_async_op_tracker;
   std::map<std::string, ImageReplayer<ImageCtxT> *> m_image_replayers;
   Peers m_peers;

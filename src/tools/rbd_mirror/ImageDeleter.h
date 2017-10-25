@@ -43,7 +43,9 @@ template <typename> class ServiceDaemon;
 template <typename ImageCtxT = librbd::ImageCtx>
 class ImageDeleter {
 public:
-  ImageDeleter(ContextWQ *work_queue, SafeTimer *timer, Mutex *timer_lock,
+  static const int EISPRM = 1000;
+
+  ImageDeleter(ContextWQ *work_queue, SafeTimer *timer, BasicMutex *timer_lock,
                ServiceDaemon<librbd::ImageCtx>* service_daemon);
   ~ImageDeleter();
   ImageDeleter(const ImageDeleter&) = delete;
@@ -120,16 +122,29 @@ private:
   Mutex *m_timer_lock;
   ServiceDaemon<librbd::ImageCtx>* m_service_daemon;
 
+<<<<<<< HEAD
   std::atomic<unsigned> m_running { 1 };
+=======
+  std::deque<std::unique_ptr<DeleteInfo> > m_delete_queue;
+  BasicMutex m_delete_lock;
+  Cond m_delete_queue_cond;
 
   double m_busy_interval = 1;
 
   AsyncOpTracker m_async_op_tracker;
 
-  Mutex m_lock;
+  BasicMutex m_lock;
+
   DeleteQueue m_delete_queue;
   DeleteQueue m_retry_delete_queue;
   DeleteQueue m_in_flight_delete_queue;
+
+  std::deque<std::unique_ptr<DeleteInfo>> m_failed_queue;
+
+  double m_failed_interval;
+
+  SafeTimer *m_failed_timer;
+  BasicMutex *m_failed_timer_lock;
 
   AdminSocketHook *m_asok_hook;
 

@@ -47,7 +47,7 @@ BootstrapRequest<I>::BootstrapRequest(
         const std::string &remote_image_id,
         const std::string &global_image_id,
         ContextWQ *work_queue, SafeTimer *timer,
-        Mutex *timer_lock,
+        BasicMutex *timer_lock,
         const std::string &local_mirror_uuid,
         const std::string &remote_mirror_uuid,
         Journaler *journaler,

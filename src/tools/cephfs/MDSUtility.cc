@@ -87,7 +87,7 @@ int MDSUtility::init()
   objecter->wait_for_osd_map();
 
   // Prepare to receive MDS map and request it
-  Mutex init_lock("MDSUtility:init");
+  BasicMutex init_lock("MDSUtility:init");
   Cond cond;
   bool done = false;
   assert(!fsmap->get_epoch());

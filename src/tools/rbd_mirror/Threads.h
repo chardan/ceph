@@ -22,7 +22,7 @@ struct Threads {
   ContextWQ *work_queue = nullptr;
 
   SafeTimer *timer = nullptr;
-  Mutex timer_lock;
+  BasicMutex timer_lock;
 
   explicit Threads(CephContext *cct);
   Threads(const Threads&) = delete;

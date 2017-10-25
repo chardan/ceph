@@ -36,7 +36,7 @@ protected:
   Messenger *messenger;
   MonClient *monc;
 
-  Mutex lock;
+  BasicMutex lock;
   Finisher finisher;
 
   Context *waiting_for_mds_map;

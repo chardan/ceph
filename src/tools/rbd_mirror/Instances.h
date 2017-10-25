@@ -86,7 +86,7 @@ private:
   librados::IoCtx &m_ioctx;
   CephContext *m_cct;
 
-  Mutex m_lock;
+  BasicMutex m_lock;
   std::vector<std::string> m_instance_ids;
   std::map<std::string, Instance> m_instances;
   Context *m_on_finish = nullptr;

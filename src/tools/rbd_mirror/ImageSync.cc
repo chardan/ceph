@@ -45,7 +45,7 @@ public:
 
 template <typename I>
 ImageSync<I>::ImageSync(I *local_image_ctx, I *remote_image_ctx,
-                        SafeTimer *timer, Mutex *timer_lock,
+                        SafeTimer *timer, BasicMutex *timer_lock,
                         const std::string &mirror_uuid, Journaler *journaler,
                         MirrorPeerClientMeta *client_meta,
                         ContextWQ *work_queue,

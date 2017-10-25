@@ -122,7 +122,7 @@ private:
 
 template <typename I>
 ImageDeleter<I>::ImageDeleter(ContextWQ *work_queue, SafeTimer *timer,
-                              Mutex *timer_lock,
+                              BasicMutex *timer_lock,
                               ServiceDaemon<librbd::ImageCtx>* service_daemon)
   : m_work_queue(work_queue), m_timer(timer), m_timer_lock(timer_lock),
     m_service_daemon(service_daemon),

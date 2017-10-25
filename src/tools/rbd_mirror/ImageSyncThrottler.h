@@ -43,7 +43,7 @@ public:
   void print_status(Formatter *f, std::stringstream *ss);
 
 private:
-  Mutex m_lock;
+  BasicMutex m_lock;
   uint32_t m_max_concurrent_syncs;
   std::list<std::pair<std::string, Context *>> m_queue;
   std::set<std::string> m_inflight_ops;

@@ -59,7 +59,7 @@ private:
   CephContext *m_cct;
   std::vector<const char*> m_args;
   Threads<librbd::ImageCtx> *m_threads = nullptr;
-  Mutex m_lock;
+  BasicMutex m_lock;
   Cond m_cond;
   RadosRef m_local;
   std::unique_ptr<ServiceDaemon<librbd::ImageCtx>> m_service_daemon;

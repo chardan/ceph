@@ -1,18 +1,21 @@
 // -*- mode:C++; tab-width:8; c-basic-offset:2; indent-tabs-mode:t -*-
 // vim: ts=8 sw=2 smarttab
 
-#include "tools/rbd/ArgumentTypes.h"
-#include "tools/rbd/Shell.h"
-#include "tools/rbd/Utils.h"
-#include "common/errno.h"
-#include "common/strtol.h"
-#include "common/Cond.h"
-#include "common/Mutex.h"
 #include <iostream>
+
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics/stats.hpp>
 #include <boost/accumulators/statistics/rolling_sum.hpp>
 #include <boost/program_options.hpp>
+
+#include "common/errno.h"
+#include "common/strtol.h"
+#include "common/Cond.h"
+#include "common/Mutex.h"
+
+#include "tools/rbd/ArgumentTypes.h"
+#include "tools/rbd/Shell.h"
+#include "tools/rbd/Utils.h"
 
 namespace rbd {
 namespace action {
@@ -106,7 +109,7 @@ public:
 
 struct rbd_bencher {
   librbd::Image *image;
-  Mutex lock;
+  BasicMutex lock;
   Cond cond;
   int in_flight;
   io_type_t io_type;

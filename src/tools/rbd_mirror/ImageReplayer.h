@@ -289,7 +289,7 @@ private:
   std::string m_global_image_id;
   std::string m_name;
 
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
   State m_state = STATE_STOPPED;
   std::string m_state_desc;
 

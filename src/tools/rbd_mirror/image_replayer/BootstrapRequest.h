@@ -16,7 +16,7 @@
 
 class Context;
 class ContextWQ;
-class Mutex;
+class BasicMutex;
 class SafeTimer;
 namespace journal { class Journaler; }
 namespace librbd { class ImageCtx; }
@@ -49,7 +49,7 @@ public:
         const std::string &remote_image_id,
         const std::string &global_image_id,
         ContextWQ *work_queue, SafeTimer *timer,
-        Mutex *timer_lock,
+        BasicMutex *timer_lock,
         const std::string &local_mirror_uuid,
         const std::string &remote_mirror_uuid,
         Journaler *journaler,
@@ -74,7 +74,7 @@ public:
                    const std::string &local_image_id,
                    const std::string &remote_image_id,
                    const std::string &global_image_id, ContextWQ *work_queue,
-                   SafeTimer *timer, Mutex *timer_lock,
+                   SafeTimer *timer, BasicMutex *timer_lock,
                    const std::string &local_mirror_uuid,
                    const std::string &remote_mirror_uuid, Journaler *journaler,
                    cls::journal::ClientState *client_state,
@@ -154,7 +154,7 @@ private:
   std::string m_global_image_id;
   ContextWQ *m_work_queue;
   SafeTimer *m_timer;
-  Mutex *m_timer_lock;
+  BasicMutex *m_timer_lock;
   std::string m_local_mirror_uuid;
   std::string m_remote_mirror_uuid;
   Journaler *m_journaler;
@@ -163,7 +163,7 @@ private:
   ProgressContext *m_progress_ctx;
   bool *m_do_resync;
 
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
   bool m_canceled = false;
 
   Tags m_remote_tags;
