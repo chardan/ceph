@@ -44,7 +44,7 @@
 
 MDSRank::MDSRank(
     mds_rank_t whoami_,
-    Mutex &mds_lock_,
+    BasicMutex &mds_lock_,
     LogChannelRef &clog_,
     SafeTimer &timer_,
     Beacon &beacon_,
@@ -2808,7 +2808,7 @@ void MDSRank::bcast_mds_map()
 
 MDSRankDispatcher::MDSRankDispatcher(
     mds_rank_t whoami_,
-    Mutex &mds_lock_,
+    BasicMutex &mds_lock_,
     LogChannelRef &clog_,
     SafeTimer &timer_,
     Beacon &beacon_,

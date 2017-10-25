@@ -136,7 +136,7 @@ protected:
 
   int64_t mdsmap_up_features;
   map<uint64_t,list<PendingEvent> > pending_events; // log segment -> event list
-  Mutex submit_mutex;
+  BasicMutex submit_mutex;
   Cond submit_cond;
 
   void set_safe_pos(uint64_t pos)

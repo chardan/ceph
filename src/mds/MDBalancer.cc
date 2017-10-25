@@ -253,7 +253,7 @@ int MDBalancer::localize_balancer()
   bool ack = false;
   int r = 0;
   bufferlist lua_src;
-  Mutex lock("lock");
+  BasicMutex lock("lock");
   Cond cond;
 
   /* we assume that balancer is in the metadata pool */

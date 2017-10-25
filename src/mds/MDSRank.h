@@ -134,7 +134,7 @@ class MDSRank {
     // Reference to global MDS::mds_lock, so that users of MDSRank don't
     // carry around references to the outer MDS, and we can substitute
     // a separate lock here in future potentially.
-    Mutex &mds_lock;
+    BasicMutex &mds_lock;
 
     bool is_daemon_stopping() const;
 
@@ -289,7 +289,7 @@ class MDSRank {
 
     MDSRank(
         mds_rank_t whoami_,
-        Mutex &mds_lock_,
+        BasicMutex &mds_lock_,
         LogChannelRef &clog_,
         SafeTimer &timer_,
         Beacon &beacon_,
@@ -557,7 +557,7 @@ public:
 
   MDSRankDispatcher(
       mds_rank_t whoami_,
-      Mutex &mds_lock_,
+      BasicMutex &mds_lock_,
       LogChannelRef &clog_,
       SafeTimer &timer_,
       Beacon &beacon_,

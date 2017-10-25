@@ -76,7 +76,7 @@ private:
   void _send();
 
   //CephContext *cct;
-  mutable Mutex lock;
+  mutable BasicMutex lock;
   MonClient*    monc;
   SafeTimer     timer;
 

@@ -40,7 +40,7 @@ class MDSDaemon : public Dispatcher, public md_config_obs_t {
    * also check the `stopping` flag.  If stopping is true, you
    * must either do nothing and immediately drop the lock, or
    * never drop the lock again (i.e. call respawn()) */
-  Mutex        mds_lock;
+  BasicMutex        mds_lock;
   bool         stopping;
 
   SafeTimer    timer;

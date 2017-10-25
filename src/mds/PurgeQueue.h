@@ -76,7 +76,7 @@ class PurgeQueue
 protected:
   CephContext *cct;
   const mds_rank_t rank;
-  Mutex lock;
+  BasicMutex lock;
 
   int64_t metadata_pool;
 
