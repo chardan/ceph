@@ -85,7 +85,7 @@ class ErasureCodeShecTableCache {
   
   virtual ~ErasureCodeShecTableCache();
   
-  Mutex codec_tables_guard; // mutex used to protect modifications in encoding/decoding table maps
+  BasicMutex codec_tables_guard; // mutex used to protect modifications in encoding/decoding table maps
   
   bool getDecodingTableFromCache(int* matrix,
                                  int* dm_row, int* dm_column,
