@@ -95,7 +95,7 @@ struct Backoff : public RefCountedObject {
     }
   }
 
-  Mutex lock;
+  BasicMutex lock;
   // NOTE: the owning PG and session are either
   //   - *both* set, or
   //   - both null (teardown), or
@@ -134,7 +134,7 @@ struct Session : public RefCountedObject {
   ConnectionRef con;
   WatchConState wstate;
 
-  Mutex session_dispatch_lock;
+  BasicMutex session_dispatch_lock;
   boost::intrusive::list<OpRequest> waiting_on_map;
 
   ceph::spinlock sent_epoch_lock;
@@ -143,7 +143,7 @@ struct Session : public RefCountedObject {
   epoch_t received_map_epoch; // largest epoch seen in MOSDMap from here
 
   /// protects backoffs; orders inside Backoff::lock *and* PG::backoff_lock
-  Mutex backoff_lock;
+  BasicMutex backoff_lock;
   std::atomic_int backoff_count= {0};  ///< simple count of backoffs
   map<spg_t,map<hobject_t,set<BackoffRef>>> backoffs;
 

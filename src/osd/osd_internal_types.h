@@ -47,7 +47,7 @@ struct ObjectContext {
   Context *destructor_callback;
 
 private:
-  Mutex lock;
+  BasicMutex lock;
 public:
   Cond cond;
   int unstable_writes, readers, writers_waiting, readers_waiting;

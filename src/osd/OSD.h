@@ -242,7 +242,7 @@ typedef ceph::shared_ptr<ObjectStore::Sequencer> SequencerRef;
 class MOSDOp;
 
 class DeletingState {
-  Mutex lock;
+  BasicMutex lock;
   Cond cond;
   enum {
     QUEUED,
@@ -384,7 +384,7 @@ public:
 
 private:
   // -- map epoch lower bound --
-  Mutex pg_epoch_lock;
+  BasicMutex pg_epoch_lock;
   multiset<epoch_t> pg_epochs;
   map<spg_t,epoch_t> pg_epoch;
 
@@ -422,7 +422,7 @@ public:
 
 private:
   // -- superblock --
-  Mutex publish_lock, pre_publish_lock; // pre-publish orders before publish
+  BasicMutex publish_lock, pre_publish_lock; // pre-publish orders before publish
   OSDSuperblock superblock;
 
 public:
@@ -521,7 +521,7 @@ public:
   }
 
 private:
-  Mutex peer_map_epoch_lock;
+  BasicMutex peer_map_epoch_lock;
   map<int, epoch_t> peer_map_epoch;
 public:
   epoch_t get_peer_epoch(int p);
@@ -560,7 +560,7 @@ public:
 
 private:
   // -- scrub scheduling --
-  Mutex sched_scrub_lock;
+  BasicMutex sched_scrub_lock;
   int scrubs_pending;
   int scrubs_active;
 
@@ -650,7 +650,7 @@ public:
 
 private:
   // -- agent shared state --
-  Mutex agent_lock;
+  BasicMutex agent_lock;
   Cond agent_cond;
   map<uint64_t, set<PGRef> > agent_queue;
   set<PGRef>::iterator agent_queue_pos;
@@ -668,7 +668,7 @@ private:
     }
   } agent_thread;
   bool agent_stop_flag;
-  Mutex agent_timer_lock;
+  BasicMutex agent_timer_lock;
   SafeTimer agent_timer;
 
 public:
@@ -805,7 +805,7 @@ public:
   vector<Finisher*> objecter_finishers;
 
   // -- Watch --
-  Mutex watch_lock;
+  BasicMutex watch_lock;
   SafeTimer watch_timer;
   uint64_t next_notif_id;
   uint64_t get_next_id(epoch_t cur_epoch) {
@@ -814,14 +814,14 @@ public:
   }
 
   // -- Recovery/Backfill Request Scheduling --
-  Mutex recovery_request_lock;
+  BasicMutex recovery_request_lock;
   SafeTimer recovery_request_timer;
 
   // For async recovery sleep
   bool recovery_needs_sleep = true;
   utime_t recovery_schedule_time = utime_t();
 
-  Mutex recovery_sleep_lock;
+  BasicMutex recovery_sleep_lock;
   SafeTimer recovery_sleep_timer;
 
   // -- tids --
@@ -838,7 +838,7 @@ public:
 
   // -- pg_temp --
 private:
-  Mutex pg_temp_lock;
+  BasicMutex pg_temp_lock;
   map<pg_t, vector<int> > pg_temp_wanted;
   map<pg_t, vector<int> > pg_temp_pending;
   void _sent_pg_temp();
@@ -852,10 +852,10 @@ public:
 
   void queue_for_peering(PG *pg);
 
-  Mutex snap_sleep_lock;
+  BasicMutex snap_sleep_lock;
   SafeTimer snap_sleep_timer;
 
-  Mutex scrub_sleep_lock;
+  BasicMutex scrub_sleep_lock;
   SafeTimer scrub_sleep_timer;
 
   AsyncReserver<spg_t> snap_reserver;
@@ -864,7 +864,7 @@ public:
 
 private:
   // -- pg recovery and associated throttling --
-  Mutex recovery_lock;
+  BasicMutex recovery_lock;
   list<pair<epoch_t, PGRef> > awaiting_throttle;
 
   utime_t defer_recovery_until;
@@ -935,7 +935,7 @@ public:
   void adjust_pg_priorities(const vector<PGRef>& pgs, int newflags);
 
   // osd map cache (past osd maps)
-  Mutex map_cache_lock;
+  BasicMutex map_cache_lock;
   SharedLRU<epoch_t, const OSDMap> map_cache;
   SimpleLRU<epoch_t, bufferlist> map_bl_cache;
   SimpleLRU<epoch_t, bufferlist> map_bl_inc_cache;
@@ -984,7 +984,7 @@ public:
 
 private:
   // split
-  Mutex in_progress_split_lock;
+  BasicMutex in_progress_split_lock;
   map<spg_t, spg_t> pending_splits; // child -> parent
   map<spg_t, set<spg_t> > rev_pending_splits; // parent -> [children]
   set<spg_t> in_progress_splits;       // child
@@ -1008,7 +1008,7 @@ public:
   void init_splits_between(spg_t pgid, OSDMapRef frommap, OSDMapRef tomap);
 
   // -- stats --
-  Mutex stat_lock;
+  BasicMutex stat_lock;
   osd_stat_t osd_stat;
   uint32_t seq = 0;
 
@@ -1031,7 +1031,7 @@ public:
   // -- OSD Full Status --
 private:
   friend TestOpsSocketHook;
-  mutable Mutex full_status_lock;
+  mutable BasicMutex full_status_lock;
   enum s_names { INVALID = -1, NONE, NEARFULL, BACKFILLFULL, FULL, FAILSAFE } cur_state;  // ascending
   const char *get_full_state_name(s_names s) const {
     switch (s) {
@@ -1079,7 +1079,7 @@ public:
 
   // -- epochs --
 private:
-  mutable Mutex epoch_lock; // protects access to boot_epoch, up_epoch, bind_epoch
+  mutable BasicMutex epoch_lock; // protects access to boot_epoch, up_epoch, bind_epoch
   epoch_t boot_epoch;  // _first_ epoch we were marked up (after this process started)
   epoch_t up_epoch;    // _most_recent_ epoch we were marked up
   epoch_t bind_epoch;  // epoch we last did a bind to new ip:ports
@@ -1114,7 +1114,7 @@ public:
   void request_osdmap_update(epoch_t e);
 
   // -- stopping --
-  Mutex is_stopping_lock;
+  BasicMutex is_stopping_lock;
   Cond is_stopping_cond;
   enum {
     NOT_STOPPING,
@@ -1138,7 +1138,7 @@ public:
 
 
 #ifdef PG_DEBUG_REFS
-  Mutex pgid_lock;
+  BasicMutex pgid_lock;
   map<spg_t, int> pgid_tracker;
   map<spg_t, PG*> live_pgs;
   void add_pgid(spg_t pgid, PG *pg);
@@ -1153,11 +1153,11 @@ public:
 class OSD : public Dispatcher,
 	    public md_config_obs_t {
   /** OSD **/
-  Mutex osd_lock;			// global lock
+  BasicMutex osd_lock;			// global lock
   SafeTimer tick_timer;    // safe timer (osd_lock)
 
   // Tick timer for those stuff that do not need osd_lock
-  Mutex tick_timer_lock;
+  BasicMutex tick_timer_lock;
   SafeTimer tick_timer_without_osd_lock;
 public:
   // config observer bits
@@ -1357,7 +1357,7 @@ private:
   void dispatch_session_waiting(Session *session, OSDMapRef osdmap);
   void maybe_share_map(Session *session, OpRequestRef op, OSDMapRef osdmap);
 
-  Mutex session_waiting_lock;
+  BasicMutex session_waiting_lock;
   set<Session*> session_waiting_for_map;
 
   /// Caller assumes refs for included Sessions
@@ -1423,7 +1423,7 @@ private:
   void osdmap_subscribe(version_t epoch, bool force_request);
   /** @} monc helpers */
 
-  Mutex osdmap_subscribe_lock;
+  BasicMutex osdmap_subscribe_lock;
   epoch_t latest_subscribed_epoch{0};
 
   // -- heartbeat --
@@ -1457,7 +1457,7 @@ private:
     int peer;
     explicit HeartbeatSession(int p) : peer(p) {}
   };
-  Mutex heartbeat_lock;
+  BasicMutex heartbeat_lock;
   map<int, int> debug_heartbeat_drops_remaining;
   Cond heartbeat_cond;
   bool heartbeat_stop;
@@ -1599,10 +1599,10 @@ private:
     : public ShardedThreadPool::ShardedWQ<OpQueueItem>
   {
     struct ShardData {
-      Mutex sdata_lock;
+      BasicMutex sdata_lock;
       Cond sdata_cond;
 
-      Mutex sdata_op_ordering_lock;   ///< protects all members below
+      BasicMutex sdata_op_ordering_lock;   ///< protects all members below
 
       OSDMapRef waiting_for_pg_osdmap;
       struct pg_slot {
@@ -1646,9 +1646,8 @@ private:
 	string lock_name, string ordering_lock,
 	uint64_t max_tok_per_prio, uint64_t min_cost, CephContext *cct,
 	io_queue opqueue)
-	: sdata_lock(lock_name.c_str(), false, true, false, cct),
-	  sdata_op_ordering_lock(ordering_lock.c_str(), false, true,
-				 false, cct) {
+	: sdata_lock(lock_name.c_str(), cct),
+	  sdata_op_ordering_lock(ordering_lock.c_str(), cct) {
 	if (opqueue == io_queue::weightedpriority) {
 	  pqueue = ceph::make_unique<
 	    WeightedPriorityQueue<OpQueueItem,uint64_t>>(
@@ -2016,7 +2015,7 @@ protected:
     PG::RecoveryCtx *rctx);
 
   // == monitor interaction ==
-  Mutex mon_report_lock;
+  BasicMutex mon_report_lock;
   utime_t last_mon_report;
 
   // -- boot --
@@ -2061,7 +2060,7 @@ protected:
   void send_still_alive(epoch_t epoch, const entity_inst_t &i);
 
   ceph::coarse_mono_clock::time_point last_sent_beacon;
-  Mutex min_last_epoch_clean_lock{"OSD::min_last_epoch_clean_lock"};
+  BasicMutex min_last_epoch_clean_lock{"OSD::min_last_epoch_clean_lock"};
   epoch_t min_last_epoch_clean = 0;
   // which pgs were scanned for min_lec
   std::vector<pg_t> min_last_epoch_clean_pgs;

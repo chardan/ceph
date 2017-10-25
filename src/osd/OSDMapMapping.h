@@ -23,7 +23,7 @@ public:
     bool aborted = false;
     Context *onfinish = nullptr;
 
-    Mutex lock = {"ParallelPGMapper::Job::lock"};
+    BasicMutex lock = {"ParallelPGMapper::Job::lock"};
     Cond cond;
 
     Job(const OSDMap *om) : start(ceph_clock_now()), osdmap(om) {}

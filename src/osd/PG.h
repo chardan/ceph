@@ -146,7 +146,7 @@ class PGRecoveryStats {
     per_state_info() : enter(0), exit(0), events(0) {}
   };
   map<const char *,per_state_info> info;
-  Mutex lock;
+  BasicMutex lock;
 
   public:
   PGRecoveryStats() : lock("PGRecoverStats::lock") {}
@@ -541,12 +541,12 @@ protected:
   // get() should be called on pointer copy (to another thread, etc.).
   // put() should be called on destruction of some previously copied pointer.
   // unlock() when done with the current pointer (_most common_).
-  mutable Mutex _lock = {"PG::_lock"};
+  mutable BasicMutex _lock = {"PG::_lock"};
 
   std::atomic_uint ref{0};
 
 #ifdef PG_DEBUG_REFS
-  Mutex _ref_id_lock = {"PG::_ref_id_lock"};
+  BasicMutex _ref_id_lock = {"PG::_ref_id_lock"};
   map<uint64_t, string> _live_ids;
   map<string, uint64_t> _tag_counts;
   uint64_t _ref_id = 0;
@@ -1013,7 +1013,7 @@ protected:
   void set_probe_targets(const set<pg_shard_t> &probe_set);
   void clear_probe_targets();
 
-  Mutex heartbeat_peer_lock;
+  BasicMutex heartbeat_peer_lock;
   set<int> heartbeat_peers;
   set<int> probe_targets;
 
@@ -1210,7 +1210,7 @@ protected:
   object_stat_collection_t unstable_stats;
 
   // publish stats
-  Mutex pg_stats_publish_lock;
+  BasicMutex pg_stats_publish_lock;
   bool pg_stats_publish_valid;
   pg_stat_t pg_stats_publish;
 
@@ -1439,7 +1439,7 @@ protected:
   friend class C_OSD_RepModify_Commit;
 
   // -- backoff --
-  Mutex backoff_lock;  // orders inside Backoff::lock
+  BasicMutex backoff_lock;  // orders inside Backoff::lock
   map<hobject_t,set<BackoffRef>> backoffs;
 
   void add_backoff(SessionRef s, const hobject_t& begin, const hobject_t& end);

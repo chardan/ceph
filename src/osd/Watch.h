@@ -274,7 +274,7 @@ public:
  * Lives in the Session object of an OSD connection
  */
 class WatchConState {
-  Mutex lock;
+  BasicMutex lock;
   std::set<WatchRef> watches;
 public:
   CephContext* cct;

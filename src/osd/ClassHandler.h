@@ -111,7 +111,7 @@ private:
       const std::string& list);
 
 public:
-  Mutex mutex;
+  BasicMutex mutex;
 
   explicit ClassHandler(CephContext *cct_) : cct(cct_), mutex("ClassHandler") {}
 

@@ -956,7 +956,7 @@ protected:
   SharedLRU<hobject_t, ObjectContext> object_contexts;
   // map from oid.snapdir() to SnapSetContext *
   map<hobject_t, SnapSetContext*> snapset_contexts;
-  Mutex snapset_contexts_lock;
+  BasicMutex snapset_contexts_lock;
 
   // debug order that client ops are applied
   map<hobject_t, map<client_t, ceph_tid_t>> debug_op_order;
