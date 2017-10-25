@@ -39,7 +39,7 @@ struct AuthAuthorizeHandler {
 };
 
 class AuthAuthorizeHandlerRegistry {
-  Mutex m_lock;
+  BasicMutex m_lock;
   map<int,AuthAuthorizeHandler*> m_authorizers;
   AuthMethodList supported;
 

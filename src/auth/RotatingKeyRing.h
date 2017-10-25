@@ -30,7 +30,7 @@ class RotatingKeyRing : public KeyStore {
   uint32_t service_id;
   RotatingSecrets secrets;
   KeyRing *keyring;
-  mutable Mutex lock;
+  mutable BasicMutex lock;
 
 public:
   RotatingKeyRing(CephContext *cct_, uint32_t s, KeyRing *kr) :

@@ -187,7 +187,7 @@ WRITE_CLASS_ENCODER(KeyServerData::Incremental)
 class KeyServer : public KeyStore {
   CephContext *cct;
   KeyServerData data;
-  mutable Mutex lock;
+  mutable BasicMutex lock;
 
   int _rotate_secret(uint32_t service_id);
   bool _check_rotating_secrets();
