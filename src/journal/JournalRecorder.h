@@ -85,13 +85,13 @@ private:
   Listener m_listener;
   ObjectHandler m_object_handler;
 
-  Mutex m_lock;
+  BasicMutex m_lock;
 
   uint32_t m_in_flight_advance_sets = 0;
   uint32_t m_in_flight_object_closes = 0;
   uint64_t m_current_set;
   ObjectRecorderPtrs m_object_ptrs;
-  std::vector<std::shared_ptr<Mutex>> m_object_locks;
+  std::vector<std::shared_ptr<BasicMutex>> m_object_locks;
 
   FutureImplPtr m_prev_future;
 
@@ -104,7 +104,7 @@ private:
   void close_and_advance_object_set(uint64_t object_set);
 
   ObjectRecorderPtr create_object_recorder(uint64_t object_number,
-                                           std::shared_ptr<Mutex> lock);
+                                           std::shared_ptr<BasicMutex> lock);
   void create_next_object_recorder_unlock(ObjectRecorderPtr object_recorder);
 
   void handle_update();

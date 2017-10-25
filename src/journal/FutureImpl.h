@@ -100,7 +100,7 @@ private:
   uint64_t m_entry_tid;
   uint64_t m_commit_tid;
 
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
   FutureImplPtr m_prev_future;
   bool m_safe;
   bool m_consistent;
@@ -113,7 +113,7 @@ private:
   Contexts m_contexts;
 
   FutureImplPtr prepare_flush(FlushHandlers *flush_handlers);
-  FutureImplPtr prepare_flush(FlushHandlers *flush_handlers, Mutex &lock);
+  FutureImplPtr prepare_flush(FlushHandlers *flush_handlers, BasicMutex &lock);
 
   void consistent(int r);
   void finish_unlock();

@@ -38,8 +38,8 @@ public:
   };
 
   ObjectRecorder(librados::IoCtx &ioctx, const std::string &oid,
-                 uint64_t object_number, std::shared_ptr<Mutex> lock,
-                 ContextWQ *work_queue, SafeTimer &timer, Mutex &timer_lock,
+                 uint64_t object_number, std::shared_ptr<BasicMutex> lock,
+                 ContextWQ *work_queue, SafeTimer &timer, BasicMutex &timer_lock,
                  Handler *handler, uint8_t order, uint32_t flush_interval,
                  uint64_t flush_bytes, double flush_age);
   ~ObjectRecorder() override;
@@ -111,7 +111,7 @@ private:
   ContextWQ *m_op_work_queue;
 
   SafeTimer &m_timer;
-  Mutex &m_timer_lock;
+  BasicMutex &m_timer_lock;
 
   Handler *m_handler;
 
@@ -126,7 +126,7 @@ private:
 
   Context *m_append_task = nullptr;
 
-  mutable std::shared_ptr<Mutex> m_lock;
+  mutable std::shared_ptr<BasicMutex> m_lock;
   AppendBuffers m_append_buffers;
   uint64_t m_append_tid;
   uint32_t m_pending_bytes;

@@ -401,7 +401,7 @@ struct C_AssertActiveTag : public Context {
 } // anonymous namespace
 
 JournalMetadata::JournalMetadata(ContextWQ *work_queue, SafeTimer *timer,
-                                 Mutex *timer_lock, librados::IoCtx &ioctx,
+                                 BasicMutex *timer_lock, librados::IoCtx &ioctx,
                                  const std::string &oid,
                                  const std::string &client_id,
                                  const Settings &settings)

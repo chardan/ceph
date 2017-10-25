@@ -63,8 +63,8 @@ JournalRecorder::JournalRecorder(librados::IoCtx &ioctx,
 
   uint8_t splay_width = m_journal_metadata->get_splay_width();
   for (uint8_t splay_offset = 0; splay_offset < splay_width; ++splay_offset) {
-    m_object_locks.push_back(shared_ptr<Mutex>(
-                                          new Mutex("ObjectRecorder::m_lock::"+
+    m_object_locks.push_back(shared_ptr<BasicMutex>(
+                                          new BasicMutex("ObjectRecorder::m_lock::"+
                                           std::to_string(splay_offset))));
     uint64_t object_number = splay_offset + (m_current_set * splay_width);
     m_object_ptrs[splay_offset] = create_object_recorder(
@@ -247,7 +247,7 @@ bool JournalRecorder::close_object_set(uint64_t active_set) {
 }
 
 ObjectRecorderPtr JournalRecorder::create_object_recorder(
-    uint64_t object_number, shared_ptr<Mutex> lock) {
+    uint64_t object_number, shared_ptr<BasicMutex> lock) {
   ObjectRecorderPtr object_recorder(new ObjectRecorder(
     m_ioctx, utils::get_object_name(m_object_oid_prefix, object_number),
     object_number, lock, m_journal_metadata->get_work_queue(),

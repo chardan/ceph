@@ -70,7 +70,7 @@ private:
 
   AsyncOpTracker m_async_op_tracker;
 
-  Mutex m_lock;
+  BasicMutex m_lock;
 
   bool m_remove_set_pending;
   uint64_t m_remove_set;

@@ -18,9 +18,9 @@ using std::shared_ptr;
 namespace journal {
 
 ObjectRecorder::ObjectRecorder(librados::IoCtx &ioctx, const std::string &oid,
-                               uint64_t object_number, shared_ptr<Mutex> lock,
+                               uint64_t object_number, shared_ptr<BasicMutex> lock,
                                ContextWQ *work_queue, SafeTimer &timer,
-                               Mutex &timer_lock, Handler *handler,
+                               BasicMutex &timer_lock, Handler *handler,
                                uint8_t order, uint32_t flush_interval,
                                uint64_t flush_bytes, double flush_age)
   : RefCountedObject(NULL, 0), m_oid(oid), m_object_number(object_number),

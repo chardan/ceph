@@ -43,7 +43,7 @@ public:
   typedef std::set<Client> RegisteredClients;
   typedef std::list<Tag> Tags;
 
-  JournalMetadata(ContextWQ *work_queue, SafeTimer *timer, Mutex *timer_lock,
+  JournalMetadata(ContextWQ *work_queue, SafeTimer *timer, BasicMutex *timer_lock,
                   librados::IoCtx &ioctx, const std::string &oid,
                   const std::string &client_id, const Settings &settings);
   ~JournalMetadata() override;
@@ -105,7 +105,7 @@ public:
   inline SafeTimer &get_timer() {
     return *m_timer;
   }
-  inline Mutex &get_timer_lock() {
+  inline BasicMutex &get_timer_lock() {
     return *m_timer_lock;
   }
 
@@ -312,9 +312,9 @@ private:
 
   ContextWQ *m_work_queue;
   SafeTimer *m_timer;
-  Mutex *m_timer_lock;
+  BasicMutex *m_timer_lock;
 
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
 
   uint64_t m_commit_tid;
   CommitTids m_pending_commit_tids;

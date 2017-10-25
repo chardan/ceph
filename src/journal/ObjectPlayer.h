@@ -37,7 +37,7 @@ public:
   };
 
   ObjectPlayer(librados::IoCtx &ioctx, const std::string &object_oid_prefix,
-               uint64_t object_num, SafeTimer &timer, Mutex &timer_lock,
+               uint64_t object_num, SafeTimer &timer, BasicMutex &timer_lock,
                uint8_t order, uint64_t max_fetch_bytes);
   ~ObjectPlayer() override;
 
@@ -103,7 +103,7 @@ private:
   CephContext *m_cct;
 
   SafeTimer &m_timer;
-  Mutex &m_timer_lock;
+  BasicMutex &m_timer_lock;
 
   uint8_t m_order;
   uint64_t m_max_fetch_bytes;
@@ -111,7 +111,7 @@ private:
   double m_watch_interval;
   Context *m_watch_task;
 
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
   bool m_fetch_in_progress;
   bufferlist m_read_bl;
   uint32_t m_read_off = 0;

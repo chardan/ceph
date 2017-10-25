@@ -78,7 +78,7 @@ Journaler::Journaler(librados::IoCtx &header_ioctx,
 }
 
 Journaler::Journaler(ContextWQ *work_queue, SafeTimer *timer,
-                     Mutex *timer_lock, librados::IoCtx &header_ioctx,
+                     BasicMutex *timer_lock, librados::IoCtx &header_ioctx,
 		     const std::string &journal_id,
 		     const std::string &client_id, const Settings &settings)
     : m_client_id(client_id) {
@@ -87,7 +87,7 @@ Journaler::Journaler(ContextWQ *work_queue, SafeTimer *timer,
 }
 
 void Journaler::set_up(ContextWQ *work_queue, SafeTimer *timer,
-                       Mutex *timer_lock, librados::IoCtx &header_ioctx,
+                       BasicMutex *timer_lock, librados::IoCtx &header_ioctx,
                        const std::string &journal_id,
                        const Settings &settings) {
   m_header_ioctx.dup(header_ioctx);

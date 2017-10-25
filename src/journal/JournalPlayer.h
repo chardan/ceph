@@ -98,7 +98,7 @@ private:
 
   AsyncOpTracker m_async_op_tracker;
 
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
   State m_state;
   uint8_t m_splay_offset;
 

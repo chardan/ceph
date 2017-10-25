@@ -16,7 +16,7 @@ namespace journal {
 struct JournalTrimmer::C_RemoveSet : public Context {
   JournalTrimmer *journal_trimmer;
   uint64_t object_set;
-  Mutex lock;
+  BasicMutex lock;
   uint32_t refs;
   int return_value;
 

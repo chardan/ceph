@@ -15,7 +15,7 @@ namespace journal {
 ObjectPlayer::ObjectPlayer(librados::IoCtx &ioctx,
                            const std::string &object_oid_prefix,
                            uint64_t object_num, SafeTimer &timer,
-                           Mutex &timer_lock, uint8_t order,
+                           BasicMutex &timer_lock, uint8_t order,
                            uint64_t max_fetch_bytes)
   : RefCountedObject(NULL, 0), m_object_num(object_num),
     m_oid(utils::get_object_name(object_oid_prefix, m_object_num)),
