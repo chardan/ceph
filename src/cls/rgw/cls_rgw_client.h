@@ -34,7 +34,7 @@ private:
   map<int, string> pending_objs;
   map<int, string> completion_objs;
   int next;
-  Mutex lock;
+  BasicMutex lock;
   Cond cond;
   /*
    * Callback implementation for AIO request.
