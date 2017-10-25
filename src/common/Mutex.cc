@@ -119,6 +119,75 @@ void BasicMutex::Unlock()
   mtx.unlock();
 }
 
+NoLockDepMutex::NoLockDepMutex(const std::string& name_, CephContext *cct_)
+ : name(name),
+   cct(cct_)
+{
+  ANNOTATE_BENIGN_RACE_SIZED(&nlocks, sizeof(nlocks), "Mutex nlock");
+  ANNOTATE_BENIGN_RACE_SIZED(&locked_by, sizeof(locked_by), "Mutex locked_by");
+
+  if (cct) {
+    PerfCountersBuilder b(cct, string("mutex-") + name, l_mutex_first, l_mutex_last);
+
+    b.add_time_avg(l_mutex_wait, "wait", "Average time of mutex in locked state");
+
+    assert(nullptr == logger);
+    logger = b.create_perf_counters();
+    assert(nullptr != logger);
+    cct->get_perfcounters_collection()->add(logger);
+    logger->set(l_mutex_wait, 0);
+  }
+}
+
+NoLockDepMutex::~NoLockDepMutex()
+{
+  assert(nlocks == 0);
+
+  // helgrind gets confused by condition wakeups leading to mutex destruction
+  ANNOTATE_BENIGN_RACE_SIZED(&mtx, sizeof(mtx), "Mutex primitive");
+
+  if (cct && logger) 
+   cct->get_perfcounters_collection()->remove(logger);
+}
+
+void NoLockDepMutex::Lock()
+{
+  if (logger && cct && cct->_conf->mutex_perf_counter) {
+    utime_t start;
+    // instrumented mutex enabled
+    start = ceph_clock_now();
+    if (TryLock()) {
+	return;
+    }
+
+    mtx.lock();
+
+    logger->tinc(l_mutex_wait,
+		 ceph_clock_now() - start);
+  } else { 
+    mtx.lock();
+  }
+
+  _post_lock();
+}
+
+bool NoLockDepMutex::TryLock()
+{
+ if (false == mtx.try_lock())
+  return false;
+
+ _post_lock();
+
+ return true;
+}
+
+void NoLockDepMutex::Unlock()
+{
+  _pre_unlock();
+
+  mtx.unlock();
+}
+
 RecursiveMutex::RecursiveMutex(const std::string& name_, CephContext *cct_)
  : name(name_),
    cct(cct_)

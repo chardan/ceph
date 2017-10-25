@@ -35,7 +35,7 @@ enum {
 };
 
 class BasicMutex;
-class LockdepFreeMutex;	// BasicMutex w/o lockdep
+class NoLockdepBasicMutex;
 class RecursiveMutex;
 
 using Mutex = BasicMutex;
@@ -127,6 +127,77 @@ class BasicMutex
   }
 };
 
+// NoLockDepMutex: A BasicMutex without LockDep: 
+// 	recursive = false, lockdep = false, backtrace = false
+class NoLockDepMutex 
+{
+ friend class Cond;
+
+ public:
+ enum class lockdep_flag : bool { enable = true, disable = false };
+
+ // Ceph interface:
+ using Locker = std::lock_guard<NoLockDepMutex>;
+
+ private:
+ std::string name;
+
+ std::mutex mtx;
+
+ int nlocks = 0;
+
+ std::thread::id locked_by; 
+
+ CephContext *cct      = nullptr;
+ PerfCounters *logger  = nullptr;
+
+ private:
+ NoLockDepMutex(const NoLockDepMutex&) = delete;
+ void operator=(const NoLockDepMutex&) = delete;
+
+ public:
+ NoLockDepMutex(const std::string& name_, CephContext *cct_);
+
+ NoLockDepMutex(const std::string name_)
+  : NoLockDepMutex(name_, nullptr)
+ {}
+
+ ~NoLockDepMutex();
+
+ public:
+ void Lock();
+// void Lock(const lockdep_flag f);
+ void Unlock();
+
+ bool TryLock();
+
+ public:
+ // Model BasicLockable:
+ void lock()		{ return Lock(); }
+ void unlock()		{ return Unlock(); }
+ bool try_lock()	{ return TryLock(); }
+
+#warning JFW race conditions waiting to happen!
+ public:
+ bool is_locked() const 	{ return nlocks; } 
+ bool is_locked_by_me() const 	{ return is_locked() && std::this_thread::get_id() == locked_by; }
+
+#warning JFW consider consolidating these
+  void _post_lock() {
+    assert(nlocks == 0);
+    locked_by = std::this_thread::get_id();
+    nlocks++;
+  }
+
+  void _pre_unlock() {
+    assert(nlocks > 0);
+    --nlocks;
+    assert(std::this_thread::get_id() == locked_by);
+    locked_by = std::thread::id();
+    assert(nlocks == 0);
+  }
+};
+
 // RecursiveMutex: A recursive mutex with LockDep (the default):
 // 	recursive = true, lockdep = false, backtrace = false
 class RecursiveMutex
@@ -183,20 +254,6 @@ class RecursiveMutex
  public:
  bool is_locked() const 	{ return nlocks; } 
  bool is_locked_by_me() const 	{ return is_locked() && std::this_thread::get_id() == locked_by; }
-
-#warning JFW consider getting rid of these, or putting them in a mixin for lockdep
-  void _register() {
-    lockdep_id = lockdep_register(name.c_str());
-  }
-  void _will_lock() { // about to lock
-    lockdep_id = lockdep_will_lock(name.c_str(), lockdep_id, backtrace);
-  }
-  void _locked() {    // just locked
-    lockdep_id = lockdep_locked(name.c_str(), lockdep_id, backtrace);
-  }
-  void _will_unlock() {  // about to unlock
-    lockdep_id = lockdep_will_unlock(name.c_str(), lockdep_id);
-  }
 
 #warning JFW consider consolidating these
   void _post_lock() {
