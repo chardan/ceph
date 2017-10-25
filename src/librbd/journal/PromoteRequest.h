@@ -71,7 +71,7 @@ private:
   Journaler *m_journaler = nullptr;
   int m_ret_val = 0;
 
-  Mutex m_lock;
+  BasicMutex m_lock;
   ImageClientMeta m_client_meta;
   uint64_t m_tag_tid = 0;
   TagData m_tag_data;

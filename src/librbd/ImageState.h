@@ -105,7 +105,7 @@ private:
   ImageCtxT *m_image_ctx;
   State m_state;
 
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
   ActionsContexts m_actions_contexts;
 
   uint64_t m_last_refresh;

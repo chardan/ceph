@@ -93,7 +93,7 @@ private:
 
   int m_acquire_lock_peer_ret_val = 0;
 
-  bool accept_ops(const Mutex &lock) const;
+  bool accept_ops(const BasicMutex &lock) const;
 
   void handle_init_complete(uint64_t features);
   void handle_post_acquiring_lock(int r);

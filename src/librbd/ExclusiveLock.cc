@@ -60,7 +60,7 @@ bool ExclusiveLock<I>::accept_ops() const {
 }
 
 template <typename I>
-bool ExclusiveLock<I>::accept_ops(const Mutex &lock) const {
+bool ExclusiveLock<I>::accept_ops(const BasicMutex &lock) const {
   return (!ML<I>::is_state_shutdown() &&
           (ML<I>::is_state_locked() || ML<I>::is_state_post_acquiring()));
 }

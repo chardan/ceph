@@ -119,7 +119,7 @@ private:
 
   ImageCtxT &m_image_ctx;
 
-  Mutex m_lock;
+  BasicMutex m_lock;
 
   uint64_t m_in_flight_aio_flush = 0;
   uint64_t m_in_flight_aio_modify = 0;

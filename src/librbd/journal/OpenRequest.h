@@ -8,7 +8,7 @@
 #include "librbd/journal/TypeTraits.h"
 
 struct Context;
-struct Mutex;
+struct BasicMutex;
 
 namespace librbd {
 
@@ -25,14 +25,14 @@ public:
   typedef typename TypeTraits<ImageCtxT>::Journaler Journaler;
 
   static OpenRequest* create(ImageCtxT *image_ctx, Journaler *journaler,
-                             Mutex *lock, journal::ImageClientMeta *client_meta,
+                             BasicMutex *lock, journal::ImageClientMeta *client_meta,
                              uint64_t *tag_tid, journal::TagData *tag_data,
                              Context *on_finish) {
     return new OpenRequest(image_ctx, journaler, lock, client_meta, tag_tid,
                            tag_data, on_finish);
   }
 
-  OpenRequest(ImageCtxT *image_ctx, Journaler *journaler, Mutex *lock,
+  OpenRequest(ImageCtxT *image_ctx, Journaler *journaler, BasicMutex *lock,
               journal::ImageClientMeta *client_meta, uint64_t *tag_tid,
               journal::TagData *tag_data, Context *on_finish);
 
@@ -59,7 +59,7 @@ private:
 
   ImageCtxT *m_image_ctx;
   Journaler *m_journaler;
-  Mutex *m_lock;
+  BasicMutex *m_lock;
   journal::ImageClientMeta *m_client_meta;
   uint64_t *m_tag_tid;
   journal::TagData *m_tag_data;

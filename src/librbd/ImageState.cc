@@ -200,7 +200,7 @@ private:
   };
 
   CephContext *m_cct;
-  Mutex m_lock;
+  BasicMutex m_lock;
   ContextWQ *m_work_queue = nullptr;
   std::map<uint64_t, UpdateWatchCtx*> m_watchers;
   uint64_t m_next_handle = 0;

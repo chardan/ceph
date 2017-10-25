@@ -49,7 +49,7 @@ private:
   CephContext *m_cct;
   std::string m_oid;
 
-  Mutex m_aio_notify_lock;
+  BasicMutex m_aio_notify_lock;
   size_t m_pending_aio_notifies = 0;
   Contexts m_aio_notify_flush_ctxs;
 

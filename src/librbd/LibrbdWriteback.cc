@@ -43,7 +43,7 @@ namespace librbd {
   }
 
   /**
-   * context to wrap another context in a Mutex
+   * context to wrap another context in a BasicMutex
    *
    * @param cct cct
    * @param c context to finish
@@ -51,7 +51,7 @@ namespace librbd {
    */
   class C_ReadRequest : public Context {
   public:
-    C_ReadRequest(CephContext *cct, Context *c, Mutex *cache_lock)
+    C_ReadRequest(CephContext *cct, Context *c, BasicMutex *cache_lock)
       : m_cct(cct), m_ctx(c), m_cache_lock(cache_lock) {
     }
     void finish(int r) override {
@@ -65,7 +65,7 @@ namespace librbd {
   private:
     CephContext *m_cct;
     Context *m_ctx;
-    Mutex *m_cache_lock;
+    BasicMutex *m_cache_lock;
   };
 
   class C_OrderedWrite : public Context {
@@ -193,7 +193,7 @@ namespace librbd {
     }
   };
 
-  LibrbdWriteback::LibrbdWriteback(ImageCtx *ictx, Mutex& lock)
+  LibrbdWriteback::LibrbdWriteback(ImageCtx *ictx, BasicMutex& lock)
     : m_tid(0), m_lock(lock), m_ictx(ictx) {
   }
 

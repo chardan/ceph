@@ -279,10 +279,10 @@ private:
 
   ContextWQ *m_work_queue = nullptr;
   SafeTimer *m_timer = nullptr;
-  Mutex *m_timer_lock = nullptr;
+  BasicMutex *m_timer_lock = nullptr;
 
   Journaler *m_journaler;
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
   State m_state;
   uint64_t m_max_append_size = 0;
   uint64_t m_tag_class = 0;
@@ -296,7 +296,7 @@ private:
   ReplayHandler m_replay_handler;
   bool m_close_pending;
 
-  Mutex m_event_lock;
+  BasicMutex m_event_lock;
   uint64_t m_event_tid;
   Events m_events;
 
@@ -330,15 +330,15 @@ private:
 
   uint64_t m_refresh_sequence = 0;
 
-  bool is_journal_replaying(const Mutex &) const;
-  bool is_tag_owner(const Mutex &) const;
+  bool is_journal_replaying(const BasicMutex &) const;
+  bool is_tag_owner(const BasicMutex &) const;
 
   uint64_t append_io_events(journal::EventType event_type,
                             const Bufferlists &bufferlists,
                             const IOObjectRequests &requests,
                             uint64_t offset, size_t length, bool flush_entry,
                             int filter_ret_val);
-  Future wait_event(Mutex &lock, uint64_t tid, Context *on_safe);
+  Future wait_event(BasicMutex &lock, uint64_t tid, Context *on_safe);
 
   void create_journaler();
   void destroy_journaler(int r);

@@ -25,7 +25,7 @@ using librbd::util::create_context_callback;
 using util::C_DecodeTags;
 
 template <typename I>
-OpenRequest<I>::OpenRequest(I *image_ctx, Journaler *journaler, Mutex *lock,
+OpenRequest<I>::OpenRequest(I *image_ctx, Journaler *journaler, BasicMutex *lock,
                             journal::ImageClientMeta *client_meta,
                             uint64_t *tag_tid, journal::TagData *tag_data,
                             Context *on_finish)

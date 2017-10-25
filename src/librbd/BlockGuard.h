@@ -158,7 +158,7 @@ private:
 
   CephContext *m_cct;
 
-  Mutex m_lock;
+  BasicMutex m_lock;
   DetainedBlockExtentsPool m_detained_block_extent_pool;
   DetainedBlockExtents m_free_detained_block_extents;
   BlockExtentToDetainedBlockExtents m_detained_block_extents;

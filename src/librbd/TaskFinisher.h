@@ -15,7 +15,7 @@ class CephContext;
 namespace librbd {
 
 struct TaskFinisherSingleton {
-  Mutex m_lock;
+  BasicMutex m_lock;
   SafeTimer *m_safe_timer;
   Finisher *m_finisher;
 
@@ -129,7 +129,7 @@ private:
 
   CephContext &m_cct;
 
-  Mutex *m_lock;
+  BasicMutex *m_lock;
   Finisher *m_finisher;
   SafeTimer *m_safe_timer;
 

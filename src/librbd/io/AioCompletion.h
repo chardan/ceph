@@ -40,8 +40,9 @@ struct AioCompletion {
     AIO_STATE_CALLBACK,
     AIO_STATE_COMPLETE,
   } aio_state_t;
-
-  mutable Mutex lock;
+#warning JFW note that the original mutex is recursive-- but does not appear to be used that way
+//JFW:  mutable RecursiveMutex lock;
+  mutable BasicMutex lock;
   Cond cond;
   aio_state_t state;
   ssize_t rval;
@@ -97,7 +98,7 @@ struct AioCompletion {
     return comp;
   }
 
-  AioCompletion() : lock("AioCompletion::lock", true, false),
+  AioCompletion() : lock("AioCompletion::lock", Mutex::lockdep_flag::disable),
                     state(AIO_STATE_PENDING), rval(0), complete_cb(NULL),
                     complete_arg(NULL), rbd_comp(NULL),
                     pending_count(0), blockers(1),

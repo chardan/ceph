@@ -9,7 +9,7 @@
 #include "osd/osd_types.h"
 #include "osdc/WritebackHandler.h"
 
-class Mutex;
+class BasicMutex;
 class Context;
 
 namespace librbd {
@@ -18,7 +18,7 @@ namespace librbd {
 
   class LibrbdWriteback : public WritebackHandler {
   public:
-    LibrbdWriteback(ImageCtx *ictx, Mutex& lock);
+    LibrbdWriteback(ImageCtx *ictx, BasicMutex& lock);
 
     // Note that oloc, trunc_size, and trunc_seq are ignored
     void read(const object_t& oid, uint64_t object_no,
@@ -62,7 +62,7 @@ namespace librbd {
     void complete_writes(const std::string& oid);
 
     ceph_tid_t m_tid;
-    Mutex& m_lock;
+    BasicMutex& m_lock;
     librbd::ImageCtx *m_ictx;
     ceph::unordered_map<std::string, std::queue<write_result_d*> > m_writes;
     friend class C_OrderedWrite;

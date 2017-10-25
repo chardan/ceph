@@ -92,7 +92,7 @@ private:
   std::map<std::string, int> m_ret;
   std::map<std::string, int> m_current_ops;
   int m_error_result = 0;
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
 
   void send_get_mirror_image();
   Context *handle_get_mirror_image(int *result);

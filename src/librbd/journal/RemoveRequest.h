@@ -58,7 +58,7 @@ private:
   CephContext *m_cct;
   Journaler *m_journaler;
   SafeTimer *m_timer;
-  Mutex *m_timer_lock;
+  BasicMutex *m_timer_lock;
   int m_r_saved;
 
   void stat_journal();

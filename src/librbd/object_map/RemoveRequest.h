@@ -48,7 +48,7 @@ private:
 
   int m_error_result = 0;
   int m_ref_counter = 0;
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
 
   void send_remove_object_map();
   Context *handle_remove_object_map(int *result);

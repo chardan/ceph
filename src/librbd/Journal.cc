@@ -131,7 +131,7 @@ struct GetTagsRequest {
   journal::TagData *tag_data;
   Context *on_finish;
 
-  Mutex lock;
+  BasicMutex lock;
 
   GetTagsRequest(CephContext *cct, J *journaler, cls::journal::Client *client,
                  journal::ImageClientMeta *client_meta, uint64_t *tag_tid,
@@ -495,7 +495,7 @@ int Journal<I>::request_resync(I *image_ctx) {
 
   Journaler journaler(image_ctx->md_ctx, image_ctx->id, IMAGE_CLIENT_ID, {});
 
-  Mutex lock("lock");
+  BasicMutex lock("lock");
   journal::ImageClientMeta client_meta;
   uint64_t tag_tid;
   journal::TagData tag_data;
@@ -565,7 +565,7 @@ bool Journal<I>::is_journal_replaying() const {
 }
 
 template <typename I>
-bool Journal<I>::is_journal_replaying(const Mutex &) const {
+bool Journal<I>::is_journal_replaying(const BasicMutex &) const {
   assert(m_lock.is_locked());
   return (m_state == STATE_REPLAYING ||
           m_state == STATE_FLUSHING_REPLAY ||
@@ -650,7 +650,7 @@ bool Journal<I>::is_tag_owner() const {
 }
 
 template <typename I>
-bool Journal<I>::is_tag_owner(const Mutex &) const {
+bool Journal<I>::is_tag_owner(const BasicMutex &) const {
   assert(m_lock.is_locked());
   return (m_tag_data.mirror_uuid == LOCAL_MIRROR_UUID);
 }
@@ -986,7 +986,7 @@ void Journal<I>::wait_event(uint64_t tid, Context *on_safe) {
 }
 
 template <typename I>
-typename Journal<I>::Future Journal<I>::wait_event(Mutex &lock, uint64_t tid,
+typename Journal<I>::Future Journal<I>::wait_event(BasicMutex &lock, uint64_t tid,
                                                    Context *on_safe) {
   assert(m_event_lock.is_locked());
   CephContext *cct = m_image_ctx.cct;
@@ -1645,7 +1645,7 @@ struct C_RefreshTags : public Context {
   util::AsyncOpTracker &async_op_tracker;
   Context *on_finish = nullptr;
 
-  Mutex lock;
+  BasicMutex lock;
   uint64_t tag_tid = 0;
   journal::TagData tag_data;
 

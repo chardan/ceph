@@ -73,7 +73,7 @@ private:
   bufferlist m_bl;
   Journaler *m_journaler;
   SafeTimer *m_timer;
-  Mutex *m_timer_lock;
+  BasicMutex *m_timer_lock;
   int m_r_saved;
 
   int64_t m_pool_id = -1;

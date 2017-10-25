@@ -68,7 +68,7 @@ public:
   }
 
 protected:
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
 
   inline void set_state_uninitialized() {
     assert(m_lock.is_locked());
@@ -228,7 +228,7 @@ private:
   ActionsContexts m_actions_contexts;
   AsyncOpTracker m_async_op_tracker;
 
-  bool is_lock_owner(Mutex &lock) const;
+  bool is_lock_owner(BasicMutex &lock) const;
   bool is_transition_state() const;
 
   void append_context(Action action, Context *ctx);

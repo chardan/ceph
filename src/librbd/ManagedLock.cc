@@ -100,7 +100,7 @@ bool ManagedLock<I>::is_lock_owner() const {
 }
 
 template <typename I>
-bool ManagedLock<I>::is_lock_owner(Mutex &lock) const {
+bool ManagedLock<I>::is_lock_owner(BasicMutex &lock) const {
 
   assert(m_lock.is_locked());
 

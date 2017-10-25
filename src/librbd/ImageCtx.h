@@ -104,14 +104,14 @@ namespace librbd {
                    // exclusive_locked
                    // lock_tag
                    // lockers
-    Mutex cache_lock; // used as client_lock for the ObjectCacher
+    BasicMutex cache_lock; // used as client_lock for the ObjectCacher
     RWLock snap_lock; // protects snapshot-related member variables,
                       // features (and associated helper classes), and flags
     RWLock parent_lock; // protects parent_md and parent
     RWLock object_map_lock; // protects object map updates and object_map itself
-    Mutex async_ops_lock; // protects async_ops and async_requests
-    Mutex copyup_list_lock; // protects copyup_waiting_list
-    Mutex completed_reqs_lock; // protects completed_reqs
+    BasicMutex async_ops_lock; // protects async_ops and async_requests
+    BasicMutex copyup_list_lock; // protects copyup_waiting_list
+    BasicMutex completed_reqs_lock; // protects completed_reqs
 
     unsigned extra_read_flags;
 
@@ -337,7 +337,7 @@ namespace librbd {
                                          ThreadPool **thread_pool,
                                          ContextWQ **op_work_queue);
     static void get_timer_instance(CephContext *cct, SafeTimer **timer,
-                                   Mutex **timer_lock);
+                                   BasicMutex **timer_lock);
   };
 }
 

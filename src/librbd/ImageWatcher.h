@@ -163,7 +163,7 @@ private:
   std::map<watch_notify::AsyncRequestId, AsyncRequest> m_async_requests;
   std::set<watch_notify::AsyncRequestId> m_async_pending;
 
-  Mutex m_owner_client_id_lock;
+  BasicMutex m_owner_client_id_lock;
   watch_notify::ClientId m_owner_client_id;
 
   void handle_register_watch(int r);

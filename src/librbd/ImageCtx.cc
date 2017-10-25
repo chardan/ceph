@@ -75,7 +75,7 @@ public:
 
 class SafeTimerSingleton : public SafeTimer {
 public:
-  Mutex lock;
+  BasicMutex lock;
 
   explicit SafeTimerSingleton(CephContext *cct)
       : SafeTimer(cct, lock, true),
@@ -1165,7 +1165,7 @@ struct C_InvalidateCache : public Context {
   }
 
   void ImageCtx::get_timer_instance(CephContext *cct, SafeTimer **timer,
-                                    Mutex **timer_lock) {
+                                    BasicMutex **timer_lock) {
     SafeTimerSingleton *safe_timer_singleton;
     cct->lookup_or_create_singleton_object<SafeTimerSingleton>(
       safe_timer_singleton, "librbd::journal::safe_timer");
