@@ -519,9 +519,9 @@ protected:
   bool verbose;//if true, display lots of debug output
 
   //shared variables protected with mutexes
-  Mutex client_index_lock;
+  BasicMutex client_index_lock;
   int client_index; //names of new objects are client_name.client_index
-  Mutex icache_lock;
+  BasicMutex icache_lock;
   IndexCache icache;
   friend struct index_data;
 
