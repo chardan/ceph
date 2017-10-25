@@ -1375,7 +1375,7 @@ class RGWMetaSyncShardCR : public RGWCoroutine {
   string raw_key;
   rgw_mdlog_entry mdlog_entry;
 
-  Mutex inc_lock;
+  BasicMutex inc_lock;
   Cond inc_cond;
 
   boost::asio::coroutine incremental_cr;

@@ -3355,7 +3355,7 @@ int RGWRados::get_max_chunk_size(const string& placement_rule, const rgw_obj& ob
 class RGWIndexCompletionManager;
 
 struct complete_op_data {
-  Mutex lock{"complete_op_data"};
+  BasicMutex lock{"complete_op_data"};
   AioCompletion *rados_completion{nullptr};
   int manager_shard_id{-1};
   RGWIndexCompletionManager *manager{nullptr};
@@ -3387,7 +3387,7 @@ class RGWIndexCompletionThread : public RGWRadosThread {
 
   list<complete_op_data *> completions;
 
-  Mutex completions_lock;
+  BasicMutex completions_lock;
 public:
   RGWIndexCompletionThread(RGWRados *_store)
     : RGWRadosThread(_store, "index-complete"), store(_store), completions_lock("RGWIndexCompletionThread::completions_lock") {}
@@ -3454,7 +3454,7 @@ int RGWIndexCompletionThread::process()
 
 class RGWIndexCompletionManager {
   RGWRados *store{nullptr};
-  vector<Mutex *> locks;
+  vector<BasicMutex *> locks;
   vector<set<complete_op_data *> > completions;
 
   RGWIndexCompletionThread *completion_thread{nullptr};
@@ -3471,7 +3471,7 @@ public:
     for (int i = 0; i < num_shards; i++) {
       char buf[64];
       snprintf(buf, sizeof(buf), "RGWIndexCompletionManager::lock::%d", i);
-      locks.push_back(new Mutex(buf));
+      locks.push_back(new BasicMutex(buf));
     }
 
     completions.resize(num_shards);
@@ -10286,8 +10286,8 @@ struct get_obj_data : public RefCountedObject {
   map<off_t, get_obj_io> io_map;
   map<off_t, librados::AioCompletion *> completion_map;
   uint64_t total_read;
-  Mutex lock;
-  Mutex data_lock;
+  BasicMutex lock;
+  BasicMutex data_lock;
   list<get_obj_aio_data> aio_data;
   RGWGetDataCB *client_cb;
   std::atomic<bool> cancelled = { false };
@@ -11635,7 +11635,7 @@ class RGWGetBucketStatsContext : public RGWGetDirHeader_CB {
   map<RGWObjCategory, RGWStorageStats> stats;
   int ret_code;
   bool should_cb;
-  Mutex lock;
+  BasicMutex lock;
 
 public:
   RGWGetBucketStatsContext(RGWGetBucketStats_CB *_cb, uint32_t _pendings)

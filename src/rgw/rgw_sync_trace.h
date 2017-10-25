@@ -39,7 +39,7 @@ class RGWSyncTraceNode {
   uint16_t state{0};
   std::string status;
 
-  Mutex lock{"RGWSyncTraceNode::lock"};
+  BasicMutex lock{"RGWSyncTraceNode::lock"};
 
 protected:
   std::string type;

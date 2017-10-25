@@ -471,7 +471,7 @@ namespace rgw {
 		      CODE_ENVIRONMENT_DAEMON,
 		      CINIT_FLAG_UNPRIVILEGED_DAEMON_DEFAULTS);
 
-    Mutex mutex("main");
+    BasicMutex mutex("main");
     SafeTimer init_timer(g_ceph_context, mutex);
     init_timer.init();
     mutex.Lock();

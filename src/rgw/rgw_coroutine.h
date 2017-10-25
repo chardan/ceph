@@ -36,7 +36,7 @@ class RGWCompletionManager : public RefCountedObject {
   using NotifierRef = boost::intrusive_ptr<RGWAioCompletionNotifier>;
   set<NotifierRef> cns;
 
-  Mutex lock;
+  BasicMutex lock;
   Cond cond;
 
   SafeTimer timer;
@@ -75,7 +75,7 @@ class RGWAioCompletionNotifier : public RefCountedObject {
   librados::AioCompletion *c;
   RGWCompletionManager *completion_mgr;
   void *user_data;
-  Mutex lock;
+  BasicMutex lock;
   bool registered;
 
 public:

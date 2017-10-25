@@ -229,7 +229,7 @@ class TokenCache {
     TokenCache* const cache;
     const rgw::keystone::Config& config;
 
-    Mutex lock;
+    BasicMutex lock;
     Cond cond;
 
     RevokeThread(CephContext* const cct,
@@ -253,7 +253,7 @@ class TokenCache {
   std::map<std::string, token_entry> tokens;
   std::list<std::string> tokens_lru;
 
-  Mutex lock;
+  BasicMutex lock;
 
   const size_t max;
 

@@ -50,7 +50,7 @@ protected:
   class OEWorker : public Thread {
     CephContext *cct;
     RGWObjectExpirer *oe;
-    Mutex lock;
+    BasicMutex lock;
     Cond cond;
 
   public:

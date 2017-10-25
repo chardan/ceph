@@ -28,7 +28,7 @@ class RGWGC {
   class GCWorker : public Thread {
     CephContext *cct;
     RGWGC *gc;
-    Mutex lock;
+    BasicMutex lock;
     Cond cond;
 
   public:

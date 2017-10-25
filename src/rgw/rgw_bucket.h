@@ -405,7 +405,7 @@ class RGWDataChangesLog {
   int num_shards;
   string *oids;
 
-  Mutex lock;
+  BasicMutex lock;
   RWLock modified_lock;
   map<int, set<string> > modified_shards;
 
@@ -416,10 +416,10 @@ class RGWDataChangesLog {
     real_time cur_sent;
     bool pending;
     RefCountedCond *cond;
-    Mutex *lock;
+    BasicMutex *lock;
 
     ChangeStatus() : pending(false), cond(NULL) {
-      lock = new Mutex("RGWDataChangesLog::ChangeStatus");
+      lock = new BasicMutex("RGWDataChangesLog::ChangeStatus");
     }
 
     ~ChangeStatus() {
@@ -440,7 +440,7 @@ class RGWDataChangesLog {
   class ChangesRenewThread : public Thread {
     CephContext *cct;
     RGWDataChangesLog *log;
-    Mutex lock;
+    BasicMutex lock;
     Cond cond;
 
   public:

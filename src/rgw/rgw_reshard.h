@@ -63,7 +63,7 @@ protected:
   class ReshardWorker : public Thread {
     CephContext *cct;
     RGWReshard *reshard;
-    Mutex lock;
+    BasicMutex lock;
     Cond cond;
 
   public:
@@ -104,7 +104,7 @@ public:
 
 class RGWReshardWait {
   RGWRados *store;
-  Mutex lock{"RGWReshardWait::lock"};
+  BasicMutex lock{"RGWReshardWait::lock"};
   Cond cond;
 
   bool going_down{false};

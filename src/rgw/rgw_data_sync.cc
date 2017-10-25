@@ -1105,7 +1105,7 @@ class RGWDataSyncShardCR : public RGWCoroutine {
   string datalog_marker;
 
   RemoteDatalogStatus remote_trimmed;
-  Mutex inc_lock;
+  BasicMutex inc_lock;
   Cond inc_cond;
 
   boost::asio::coroutine incremental_cr;
@@ -1514,7 +1514,7 @@ class RGWDataSyncCR : public RGWCoroutine {
 
   RGWDataSyncShardMarkerTrack *marker_tracker;
 
-  Mutex shard_crs_lock;
+  BasicMutex shard_crs_lock;
   map<int, RGWDataSyncShardControlCR *> shard_crs;
 
   bool *reset_backoff;
@@ -1709,7 +1709,7 @@ public:
   }
 
   void wakeup(int shard_id, set<string>& keys) {
-    Mutex& m = cr_lock();
+    BasicMutex& m = cr_lock();
 
     m.Lock();
     RGWDataSyncCR *cr = static_cast<RGWDataSyncCR *>(get_cr());

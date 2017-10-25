@@ -445,7 +445,7 @@ class RGWUserStatsCache : public RGWQuotaCache<rgw_user> {
     CephContext *cct;
     RGWUserStatsCache *stats;
 
-    Mutex lock;
+    BasicMutex lock;
     Cond cond;
   public:
 
@@ -497,7 +497,7 @@ class RGWUserStatsCache : public RGWQuotaCache<rgw_user> {
     CephContext *cct;
     RGWUserStatsCache *stats;
 
-    Mutex lock;
+    BasicMutex lock;
     Cond cond;
   public:
 

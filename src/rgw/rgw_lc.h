@@ -345,7 +345,7 @@ class RGWLC {
   class LCWorker : public Thread {
     CephContext *cct;
     RGWLC *lc;
-    Mutex lock;
+    BasicMutex lock;
     Cond cond;
 
   public:

@@ -57,7 +57,7 @@ typedef std::shared_ptr<RGWSyncModule> RGWSyncModuleRef;
 
 
 class RGWSyncModulesManager {
-  Mutex lock;
+  BasicMutex lock;
 
   map<string, RGWSyncModuleRef> modules;
 public:

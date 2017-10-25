@@ -126,7 +126,7 @@ public:
 class RGWBackoffControlCR : public RGWCoroutine
 {
   RGWCoroutine *cr;
-  Mutex lock;
+  BasicMutex lock;
 
   RGWSyncBackoff backoff;
   bool reset_backoff;
@@ -138,7 +138,7 @@ protected:
     return &reset_backoff;
   }
 
-  Mutex& cr_lock() {
+  BasicMutex& cr_lock() {
     return lock;
   }
 

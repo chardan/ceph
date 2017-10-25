@@ -275,7 +275,7 @@ int main(int argc, const char **argv)
   if (g_conf->daemonize) {
     global_init_daemonize(g_ceph_context);
   }
-  Mutex mutex("main");
+  BasicMutex mutex("main");
   SafeTimer init_timer(g_ceph_context, mutex);
   init_timer.init();
   mutex.Lock();

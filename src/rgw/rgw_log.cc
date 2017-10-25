@@ -88,9 +88,9 @@ class UsageLogger {
   CephContext *cct;
   RGWRados *store;
   map<rgw_user_bucket, RGWUsageBatch> usage_map;
-  Mutex lock;
+  BasicMutex lock;
   int32_t num_entries;
-  Mutex timer_lock;
+  BasicMutex timer_lock;
   SafeTimer timer;
   utime_t round_timestamp;
 

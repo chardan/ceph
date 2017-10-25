@@ -33,7 +33,7 @@ struct rgw_http_req_data : public RefCountedObject {
   RGWHTTPManager *mgr;
   char error_buf[CURL_ERROR_SIZE];
 
-  Mutex lock;
+  BasicMutex lock;
   Cond cond;
 
   rgw_http_req_data() : easy_handle(NULL), h(NULL), id(-1), ret(0),

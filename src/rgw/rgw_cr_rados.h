@@ -16,7 +16,7 @@ class RGWAsyncRadosRequest : public RefCountedObject {
 
   int retcode;
 
-  Mutex lock;
+  BasicMutex lock;
 
 protected:
   virtual int _send_request() = 0;
@@ -561,7 +561,7 @@ public:
 
 class RGWAsyncWait : public RGWAsyncRadosRequest {
   CephContext *cct;
-  Mutex *lock;
+  BasicMutex *lock;
   Cond *cond;
   utime_t interval;
 protected:
@@ -571,7 +571,7 @@ protected:
   }
 public:
   RGWAsyncWait(RGWCoroutine *caller, RGWAioCompletionNotifier *cn, CephContext *_cct,
-               Mutex *_lock, Cond *_cond, int _secs) : RGWAsyncRadosRequest(caller, cn),
+               BasicMutex *_lock, Cond *_cond, int _secs) : RGWAsyncRadosRequest(caller, cn),
                                        cct(_cct),
                                        lock(_lock), cond(_cond), interval(_secs, 0) {}
 
@@ -584,7 +584,7 @@ public:
 class RGWWaitCR : public RGWSimpleCoroutine {
   CephContext *cct;
   RGWAsyncRadosProcessor *async_rados;
-  Mutex *lock;
+  BasicMutex *lock;
   Cond *cond;
   int secs;
 
@@ -592,7 +592,7 @@ class RGWWaitCR : public RGWSimpleCoroutine {
 
 public:
   RGWWaitCR(RGWAsyncRadosProcessor *_async_rados, CephContext *_cct,
-	    Mutex *_lock, Cond *_cond,
+	    BasicMutex *_lock, Cond *_cond,
             int _secs) : RGWSimpleCoroutine(_cct), cct(_cct),
                          async_rados(_async_rados), lock(_lock), cond(_cond), secs(_secs), req(NULL) {
   }
@@ -1047,7 +1047,7 @@ class RGWContinuousLeaseCR : public RGWCoroutine {
 
   int interval;
 
-  Mutex lock;
+  BasicMutex lock;
   std::atomic<bool> going_down = { false };
   bool locked{false};
 

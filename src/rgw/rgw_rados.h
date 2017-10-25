@@ -2260,8 +2260,8 @@ class RGWRados
   void get_bucket_instance_ids(const RGWBucketInfo& bucket_info, int shard_id, map<int, string> *result);
 
   std::atomic<int64_t> max_req_id = { 0 };
-  Mutex lock;
-  Mutex watchers_lock;
+  BasicMutex lock;
+  BasicMutex watchers_lock;
   SafeTimer *timer;
 
   RGWGC *gc;
@@ -2284,8 +2284,8 @@ class RGWRados
   boost::optional<rgw::BucketTrimManager> bucket_trim;
   RGWSyncLogTrimThread *sync_log_trimmer{nullptr};
 
-  Mutex meta_sync_thread_lock;
-  Mutex data_sync_thread_lock;
+  BasicMutex meta_sync_thread_lock;
+  BasicMutex data_sync_thread_lock;
 
   int num_watchers;
   RGWWatcher **watchers;
@@ -2296,7 +2296,7 @@ class RGWRados
 
   friend class RGWWatcher;
 
-  Mutex bucket_id_lock;
+  BasicMutex bucket_id_lock;
 
   // This field represents the number of bucket index object shards
   uint32_t bucket_index_max_shards;
@@ -4028,7 +4028,7 @@ class RGWRadosThread {
   class Worker : public Thread {
     CephContext *cct;
     RGWRadosThread *processor;
-    Mutex lock;
+    BasicMutex lock;
     Cond cond;
 
     void wait() {

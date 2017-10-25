@@ -64,7 +64,7 @@ public:
 
 
 class RGWRESTStreamWriteRequest : public RGWRESTSimpleRequest {
-  Mutex lock;
+  BasicMutex lock;
   list<bufferlist> pending_send;
   RGWGetDataCB *cb;
   RGWHTTPManager http_manager;
@@ -83,7 +83,7 @@ public:
 };
 
 class RGWRESTStreamRWRequest : public RGWRESTSimpleRequest {
-  Mutex lock;
+  BasicMutex lock;
   RGWGetDataCB *cb;
   bufferlist outbl;
   bufferlist in_data;

@@ -117,7 +117,7 @@ WRITE_CLASS_ENCODER(rgw_log_entry)
 
 class OpsLogSocket : public OutputDataSocket {
   Formatter *formatter;
-  Mutex lock;
+  BasicMutex lock;
 
   void formatter_to_bl(bufferlist& bl);
 
