@@ -23,8 +23,12 @@
 #include <set>
 #include <memory>
 
-#include "include/assert.h"
+#include "common/Mutex.h"
+
 #include "include/memory.h"
+
+// clobber other asserts:
+#include "include/assert.h"
 
 #define mydout(cct, v) lgeneric_subdout(cct, context, v)
 
@@ -274,7 +278,7 @@ private:
 #endif
   int sub_created_count;
   int sub_existing_count;
-  mutable Mutex lock;
+  mutable RecursiveMutex lock;
   bool activated;
 
   void sub_finish(ContextType* sub, int r) {
@@ -332,7 +336,7 @@ public:
   C_GatherBase(CephContext *cct_, ContextType *onfinish_)
     : cct(cct_), result(0), onfinish(onfinish_),
       sub_created_count(0), sub_existing_count(0),
-      lock("C_GatherBase::lock", true, false), //disable lockdep
+      lock("C_GatherBase::lock"), //disable lockdep
       activated(false)
   {
     mydout(cct,10) << "C_GatherBase " << this << ".new" << dendl;
