@@ -128,7 +128,7 @@ public:
   int rank;
   Messenger *messenger;
   ConnectionRef con_self;
-  Mutex lock;
+  BasicMutex lock;
   SafeTimer timer;
   Finisher finisher;
   ThreadPool cpu_tp;  ///< threadpool for CPU intensive work
@@ -650,7 +650,7 @@ public:
 
   // -- sessions --
   MonSessionMap session_map;
-  Mutex session_map_lock{"Monitor::session_map_lock"};
+  BasicMutex session_map_lock{"Monitor::session_map_lock"};
   AdminSocketHook *admin_hook;
 
   template<typename Func, typename...Args>

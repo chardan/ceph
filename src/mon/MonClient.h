@@ -41,7 +41,7 @@ class RotatingKeyRing;
 
 struct MonClientPinger : public Dispatcher {
 
-  Mutex lock;
+  BasicMutex lock;
   Cond ping_recvd_cond;
   string *result;
   bool done;
@@ -157,7 +157,7 @@ private:
 
   entity_addr_t my_addr;
 
-  mutable Mutex monc_lock;
+  mutable BasicMutex monc_lock;
   SafeTimer timer;
   Finisher finisher;
 

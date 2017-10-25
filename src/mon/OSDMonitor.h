@@ -208,7 +208,7 @@ private:
   void check_osdmap_subs();
   void share_map_with_random_osd();
 
-  Mutex prime_pg_temp_lock = {"OSDMonitor::prime_pg_temp_lock"};
+  BasicMutex prime_pg_temp_lock = {"OSDMonitor::prime_pg_temp_lock"};
   struct PrimeTempJob : public ParallelPGMapper::Job {
     OSDMonitor *osdmon;
     PrimeTempJob(const OSDMap& om, OSDMonitor *m)
