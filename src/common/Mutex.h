@@ -50,8 +50,7 @@ class BasicMutex
  enum class lockdep_flag : bool { enable = true, disable = false };
 
  // Ceph interface:
- template <typename MutexT>
- using Locker = std::lock_guard<MutexT>;
+ using Locker = std::lock_guard<Mutex>;
 
  private:
  std::string name;
