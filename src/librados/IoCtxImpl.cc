@@ -120,7 +120,7 @@ struct C_aio_linger_Complete : public Context {
 };
 
 struct C_aio_notify_Complete : public C_aio_linger_Complete {
-  Mutex lock;
+  BasicMutex lock;
   bool acked = false;
   bool finished = false;
   int ret_val = 0;
@@ -370,7 +370,7 @@ int librados::IoCtxImpl::snap_create(const char *snapName)
   int reply;
   string sName(snapName);
 
-  Mutex mylock ("IoCtxImpl::snap_create::mylock");
+  BasicMutex mylock ("IoCtxImpl::snap_create::mylock");
   Cond cond;
   bool done;
   Context *onfinish = new C_SafeCond(&mylock, &cond, &done, &reply);
@@ -391,7 +391,7 @@ int librados::IoCtxImpl::selfmanaged_snap_create(uint64_t *psnapid)
 {
   int reply;
 
-  Mutex mylock("IoCtxImpl::selfmanaged_snap_create::mylock");
+  BasicMutex mylock("IoCtxImpl::selfmanaged_snap_create::mylock");
   Cond cond;
   bool done;
   Context *onfinish = new C_SafeCond(&mylock, &cond, &done, &reply);
@@ -428,7 +428,7 @@ int librados::IoCtxImpl::snap_remove(const char *snapName)
   int reply;
   string sName(snapName);
 
-  Mutex mylock ("IoCtxImpl::snap_remove::mylock");
+  BasicMutex mylock ("IoCtxImpl::snap_remove::mylock");
   Cond cond;
   bool done;
   Context *onfinish = new C_SafeCond(&mylock, &cond, &done, &reply);
@@ -451,7 +451,7 @@ int librados::IoCtxImpl::selfmanaged_snap_rollback_object(const object_t& oid,
 {
   int reply;
 
-  Mutex mylock("IoCtxImpl::snap_rollback::mylock");
+  BasicMutex mylock("IoCtxImpl::snap_rollback::mylock");
   Cond cond;
   bool done;
   Context *onack = new C_SafeCond(&mylock, &cond, &done, &reply);
@@ -485,7 +485,7 @@ int librados::IoCtxImpl::selfmanaged_snap_remove(uint64_t snapid)
 {
   int reply;
 
-  Mutex mylock("IoCtxImpl::selfmanaged_snap_remove::mylock");
+  BasicMutex mylock("IoCtxImpl::selfmanaged_snap_remove::mylock");
   Cond cond;
   bool done;
   objecter->delete_selfmanaged_snap(poolid, snapid_t(snapid),
@@ -508,7 +508,7 @@ int librados::IoCtxImpl::pool_change_auid(unsigned long long auid)
 {
   int reply;
 
-  Mutex mylock("IoCtxImpl::pool_change_auid::mylock");
+  BasicMutex mylock("IoCtxImpl::pool_change_auid::mylock");
   Cond cond;
   bool done;
   objecter->change_pool_auid(poolid,
@@ -570,7 +570,7 @@ int librados::IoCtxImpl::nlist(Objecter::NListContext *context, int max_entries)
   Cond cond;
   bool done;
   int r = 0;
-  Mutex mylock("IoCtxImpl::nlist::mylock");
+  BasicMutex mylock("IoCtxImpl::nlist::mylock");
 
   if (context->at_end())
     return 0;
@@ -702,7 +702,7 @@ int librados::IoCtxImpl::operate(const object_t& oid, ::ObjectOperation *o,
   if (!o->size())
     return 0;
 
-  Mutex mylock("IoCtxImpl::operate::mylock");
+  BasicMutex mylock("IoCtxImpl::operate::mylock");
   Cond cond;
   bool done;
   int r;
@@ -738,7 +738,7 @@ int librados::IoCtxImpl::operate_read(const object_t& oid,
   if (!o->size())
     return 0;
 
-  Mutex mylock("IoCtxImpl::operate_read::mylock");
+  BasicMutex mylock("IoCtxImpl::operate_read::mylock");
   Cond cond;
   bool done;
   int r;
@@ -1473,7 +1473,7 @@ int librados::IoCtxImpl::mapext(const object_t& oid,
 {
   bufferlist bl;
 
-  Mutex mylock("IoCtxImpl::read::mylock");
+  BasicMutex mylock("IoCtxImpl::read::mylock");
   Cond cond;
   bool done;
   int r;

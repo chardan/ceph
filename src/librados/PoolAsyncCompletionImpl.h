@@ -23,7 +23,7 @@
 
 namespace librados {
   struct PoolAsyncCompletionImpl {
-    Mutex lock;
+    BasicMutex lock;
     Cond cond;
     int ref, rval;
     bool released;

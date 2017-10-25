@@ -68,7 +68,7 @@ private:
 
   Objecter *objecter;
 
-  Mutex lock;
+  BasicMutex lock;
   Cond cond;
   SafeTimer timer;
   int refcnt;

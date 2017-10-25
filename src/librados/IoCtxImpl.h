@@ -41,7 +41,7 @@ struct librados::IoCtxImpl {
   uint32_t notify_timeout;
   object_locator_t oloc;
 
-  Mutex aio_write_list_lock;
+  BasicMutex aio_write_list_lock;
   ceph_tid_t aio_write_seq;
   Cond aio_write_cond;
   xlist<AioCompletionImpl*> aio_write_list;

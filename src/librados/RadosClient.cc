@@ -390,7 +390,7 @@ void librados::RadosClient::shutdown()
 int librados::RadosClient::watch_flush()
 {
   ldout(cct, 10) << __func__ << " enter" << dendl;
-  Mutex mylock("RadosClient::watch_flush::mylock");
+  BasicMutex mylock("RadosClient::watch_flush::mylock");
   Cond cond;
   bool done;
   objecter->linger_callback_flush(new C_SafeCond(&mylock, &cond, &done));
@@ -575,7 +575,7 @@ int librados::RadosClient::wait_for_osdmap()
 
 int librados::RadosClient::wait_for_latest_osdmap()
 {
-  Mutex mylock("RadosClient::wait_for_latest_osdmap");
+  BasicMutex mylock("RadosClient::wait_for_latest_osdmap");
   Cond cond;
   bool done;
 
@@ -605,7 +605,7 @@ int librados::RadosClient::pool_list(std::list<std::pair<int64_t, string> >& v)
 int librados::RadosClient::get_pool_stats(std::list<string>& pools,
 					  map<string,::pool_stat_t>& result)
 {
-  Mutex mylock("RadosClient::get_pool_stats::mylock");
+  BasicMutex mylock("RadosClient::get_pool_stats::mylock");
   Cond cond;
   bool done;
   int ret = 0;
@@ -635,7 +635,7 @@ bool librados::RadosClient::get_pool_is_selfmanaged_snaps_mode(
 
 int librados::RadosClient::get_fs_stats(ceph_statfs& stats)
 {
-  Mutex mylock ("RadosClient::get_fs_stats::mylock");
+  BasicMutex mylock ("RadosClient::get_fs_stats::mylock");
   Cond cond;
   bool done;
   int ret = 0;
@@ -673,7 +673,7 @@ int librados::RadosClient::pool_create(string& name, unsigned long long auid,
     return r;
   }
 
-  Mutex mylock ("RadosClient::pool_create::mylock");
+  BasicMutex mylock ("RadosClient::pool_create::mylock");
   int reply;
   Cond cond;
   bool done;
@@ -737,7 +737,7 @@ int librados::RadosClient::pool_delete(const char *name)
     return r;
   }
 
-  Mutex mylock("RadosClient::pool_delete::mylock");
+  BasicMutex mylock("RadosClient::pool_delete::mylock");
   Cond cond;
   bool done;
   int ret;
@@ -848,7 +848,7 @@ int librados::RadosClient::mon_command(int rank, const vector<string>& cmd,
 				       const bufferlist &inbl,
 				       bufferlist *outbl, string *outs)
 {
-  Mutex mylock("RadosClient::mon_command::mylock");
+  BasicMutex mylock("RadosClient::mon_command::mylock");
   Cond cond;
   bool done;
   int rval;
@@ -867,7 +867,7 @@ int librados::RadosClient::mon_command(string name, const vector<string>& cmd,
 				       const bufferlist &inbl,
 				       bufferlist *outbl, string *outs)
 {
-  Mutex mylock("RadosClient::mon_command::mylock");
+  BasicMutex mylock("RadosClient::mon_command::mylock");
   Cond cond;
   bool done;
   int rval;
@@ -886,7 +886,7 @@ int librados::RadosClient::osd_command(int osd, vector<string>& cmd,
 				       const bufferlist& inbl,
 				       bufferlist *poutbl, string *prs)
 {
-  Mutex mylock("RadosClient::osd_command::mylock");
+  BasicMutex mylock("RadosClient::osd_command::mylock");
   Cond cond;
   bool done;
   int ret;
@@ -911,7 +911,7 @@ int librados::RadosClient::pg_command(pg_t pgid, vector<string>& cmd,
 				      const bufferlist& inbl,
 				      bufferlist *poutbl, string *prs)
 {
-  Mutex mylock("RadosClient::pg_command::mylock");
+  BasicMutex mylock("RadosClient::pg_command::mylock");
   Cond cond;
   bool done;
   int ret;
