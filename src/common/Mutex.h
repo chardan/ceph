@@ -16,27 +16,17 @@
 #define CEPH_MUTEX_H
 
 #include <mutex>
-
-#include <pthread.h>
-
-#include "common/Clock.h"
-#include "common/ceph_context.h"
+#include <thread>
 
 #include "lockdep.h"
 
-// clobber other asserts:
+#include "common/ceph_context.h"
+
 #include "include/assert.h"
 
 using namespace ceph;
 
 class PerfCounters;
-
-namespace detail {
-
-template <typename MutexT>
-class Mutex_Common;
-
-} // namespace detail
 
 enum {
   l_mutex_first = 999082,
@@ -44,190 +34,100 @@ enum {
   l_mutex_last
 };
 
-// Interface:
-// - the unfortunate name is a consequence of needing to fit in with extant behavior
-class Mutex
+class BasicMutex;
+class LockdepFreeMutex;	// BasicMutex w/o lockdep
+class RecursiveMutex;
+
+using Mutex = BasicMutex;
+
+// BasicMutex: A non-recursive mutex with LockDep (the default):
+// 	recursive = false, lockdep = true, backtrace = false
+class BasicMutex 
 {
- template <typename MutexT>
- friend class detail::Mutex_Common;
+ friend class Cond;
 
  public:
  enum class lockdep_flag : bool { enable = true, disable = false };
 
- private:
- pthread_t	locked_by;
+ // Ceph interface:
+ using Locker = std::lock_guard<BasicMutex>;
 
- protected:
+ private:
  std::string name;
 
- bool lockdep 	= true;  // JFW: lockdep used only for non-recursive mutexes..?
- bool backtrace	= false;
+ int lockdep_id	= 0;
 
- int id 	= 0;
+ std::mutex mtx;
 
- int nlocks	= 0;
+ int nlocks = 0;
 
- CephContext	*cct	 = nullptr;
- PerfCounters	*logger  = nullptr;
+ std::thread::id locked_by; 
+
+ CephContext *cct      = nullptr;
+ PerfCounters *logger  = nullptr;
 
  private:
- Mutex(const Mutex&)		= delete;
- void operator=(const Mutex&)	= delete;
+ BasicMutex(const BasicMutex&)   = delete;
+ void operator=(const BasicMutex&) = delete;
 
  public:
- Mutex(const std::string& name_);
- Mutex(const std::string& name_, lockdep_flag);	// JFW: occurs only once so far..
- Mutex(const std::string& name_, CephContext *cct_);
+ BasicMutex(const std::string& name_, CephContext *cct_);
 
- virtual ~Mutex();
+ BasicMutex(const std::string name_)
+  : BasicMutex(name_, nullptr)
+ {}
 
- public:
- bool is_locked() const       { return nlocks; }
- bool is_locked_by_me()	const { return is_locked() && pthread_self() == locked_by; }
+ ~BasicMutex();
 
  public:
- virtual void Lock(bool no_lockdep) = 0;
+ void Lock();
+ void Lock(const lockdep_flag f);
+ void Unlock();
 
- virtual void Lock() 	= 0;
+ bool TryLock();
 
- virtual void Unlock()	= 0;
-
- virtual bool TryLock()	= 0;
-
+ public:
  // Model BasicLockable:
  void lock()		{ return Lock(); }
  void unlock()		{ return Unlock(); }
  bool try_lock()	{ return TryLock(); }
 
- // Ceph interface:
- using Locker = std::lock_guard<Mutex>;
-};
-
-namespace detail {
-
-template <typename MutexT>
-struct Mutex_Common
-{
- friend class Cond;
-
+#warning JFW race conditions waiting to happen!
  public:
- MutexT mtx; 
+ bool is_locked() const 	{ return nlocks; } 
+ bool is_locked_by_me() const 	{ return is_locked() && std::this_thread::get_id() == locked_by; }
 
- public:
- ~Mutex_Common()
- {
-#warning JFW this might require more fiddling... hopefully NOT up to requiring two completely impls
-/* JFW: 
-     // helgrind gets confused by condition wakeups leading to mutex destruction
-     ANNOTATE_BENIGN_RACE_SIZED(&mtx, sizeof(mtx), "Mutex primitive");
-*/
- }
-
- public:
-
- template <typename OwnerT>
- void lock_self(OwnerT& owner)
- {
-  // instrumented mutex enabled (JFW: not sure why if(logger) is insufficient):
-  if (owner.logger && owner.cct && owner.cct->_conf->mutex_perf_counter) {
-    utime_t start;
-
-    start = ceph_clock_now();
-
-    // Already locked:
-    if(owner.TryLock()) 
-     return;
-
-    mtx.lock();
-
-    owner.logger->tinc(l_mutex_wait,
-		       ceph_clock_now() - start);
-  } else {
-    mtx.lock();
+#warning JFW consider getting rid of these, or putting them in a mixin for lockdep
+  void _register() {
+    lockdep_id = lockdep_register(name.c_str());
+  }
+  void _will_lock() { // about to lock
+    lockdep_id = lockdep_will_lock(name.c_str(), lockdep_id, backtrace);
+  }
+  void _locked() {    // just locked
+    lockdep_id = lockdep_locked(name.c_str(), lockdep_id, backtrace);
+  }
+  void _will_unlock() {  // about to unlock
+    lockdep_id = lockdep_will_unlock(name.c_str(), lockdep_id);
   }
 
-  owner.nlocks++;
+#warning JFW consider consolidating these
+  void _post_lock() {
+    assert(nlocks == 0);
+    locked_by = std::this_thread::get_id();
+    nlocks++;
+  }
 
-  owner.locked_by = pthread_self();
- }
-
- template <typename OwnerT>
- void unlock_self(OwnerT& owner)
- {
-  assert(pthread_self() == owner.locked_by);
-
-  mtx.unlock(); 
- 
-  owner.nlocks--;
-  owner.locked_by = 0;
- }
-
- template <typename OwnerT>
- bool try_lock_self(OwnerT& owner)
- {
-  // We're already locked:
-  if(mtx.try_lock())
-   return true;
-
-  // Note that if logging is on, this calls try_lock() again.
-  lock_self(owner);
-
-  return false;
- }
-
+  void _pre_unlock() {
+    assert(nlocks > 0);
+    --nlocks;
+    assert(std::this_thread::get_id() == locked_by);
+    locked_by = std::thread::id();
+    assert(nlocks == 0);
+  }
 };
 
-} // namespace detail
-
-class BasicMutex : public Mutex, 
-                   public detail::Mutex_Common<std::mutex>
-{
- public:
- BasicMutex(const std::string& name_)
-  : Mutex(name_)
- {}
-
- BasicMutex(const std::string& name_, CephContext *cct_)
-  : Mutex(name_, cct_)
- {}
-
- BasicMutex(const std::string& name_, lockdep_flag ldf)
-  : Mutex(name_, ldf)
- {}
- 
- public:
- void Lock(bool no_lockdep) override;
- void Lock() override { return Lock(false); }
- void Unlock() override;
-
- bool TryLock() override;
-};
-
-class RecursiveMutex : public Mutex,
-                       public detail::Mutex_Common<std::recursive_mutex>
-{
- public:
- RecursiveMutex(const std::string& name_)
-  : Mutex(name_)
- {}
-
- RecursiveMutex(const std::string& name_, CephContext *cct_)
-  : Mutex(name_, cct_)
- {}
-
- RecursiveMutex(const std::string& name_, lockdep_flag ldf)
-  : Mutex(name_, ldf)
- {}
-
- public:
- void Lock(bool no_lockdep) override;
- void Lock() override { return Lock(false); }
- void Unlock() override;
-
- bool TryLock() override;
-};
-
-/* JFW:
+/*
 class OLD_Mutex {
 private:
   std::string name;
@@ -274,53 +174,7 @@ public:
     int r = pthread_mutex_trylock(&_m);
     if (r == 0) {
       if (lockdep && g_lockdep) _locked();
-      _void Mutex_Common::lock_self()
-{
-  // instrumented mutex enabled (JFW: not sure why if(logger) is insufficient):
-  if (logger && cct && cct->_conf->mutex_perf_counter) {
-    utime_t start;
-
-    start = ceph_clock_now();
-
-    if(TryLock()) 
-     return;
-
-    mtx.lock();
-
-    logger->tinc(l_mutex_wait,
-		 ceph_clock_now() - start);
-  } else {
-    mtx.lock();
-  }
-
-  nlock++;
-
-  locked_by = pthread_self();
-}
-
-void Mutex_Common::unlock_self()
-{
- assert(pthread_self() == locked_by);
-
- mtx.unlock();
-
- nlock--;
- locked_by = 0;
-}
-
-bool Mutex_Common::try_lock_self()
-{
-  // We're already locked:
-  if(mtx.try_lock())
-   return true;
-
-  // Lock acquired:
-  nlock++;
-
-  return false;
-}
-
-post_lock();
+      _post_lock();
     }
     return r == 0;
   }

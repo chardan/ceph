@@ -13,117 +13,214 @@
  */
 
 #include "common/Mutex.h"
-#include "common/config.h"
-#include "common/valgrind.h"
 #include "common/perf_counters.h"
+#include "common/config.h"
+#include "common/Clock.h"
+#include "common/valgrind.h"
 
-Mutex::Mutex(const std::string& name_, CephContext *cct_)
- : name(name_),
+BasicMutex::BasicMutex(const std::string& name_, CephContext *cct_)
+ : name(name),
    cct(cct_)
 {
- ANNOTATE_BENIGN_RACE_SIZED(&id, sizeof(id), "Mutex lockdep id");
- ANNOTATE_BENIGN_RACE_SIZED(&nlocks, sizeof(nlocks), "Mutex nlock");
- ANNOTATE_BENIGN_RACE_SIZED(&locked_by, sizeof(locked_by), "Mutex locked_by");
+  ANNOTATE_BENIGN_RACE_SIZED(&lockdep_id, sizeof(lockdep_id), "Mutex lockdep id");
+  ANNOTATE_BENIGN_RACE_SIZED(&nlocks, sizeof(nlocks), "Mutex nlock");
+  ANNOTATE_BENIGN_RACE_SIZED(&locked_by, sizeof(locked_by), "Mutex locked_by");
 
-// JFW: this applies only if NOT recursive..?
- if(lockdep)
-  { 
-/*
- // JFW: I'm not sure there's a standard library equivalent...
+  if (cct) {
+    PerfCountersBuilder b(cct, string("mutex-") + name, l_mutex_first, l_mutex_last);
+
+    b.add_time_avg(l_mutex_wait, "wait", "Average time of mutex in locked state");
+
+    assert(nullptr == logger);
+    logger = b.create_perf_counters();
+    assert(nullptr != logger);
+    cct->get_perfcounters_collection()->add(logger);
+    logger->set(l_mutex_wait, 0);
+  }
+
+/* JFW: this is the original Mutex behavior for lockdep == true (implicit in this class),
+I don't know what really expresses this in std::mutex... 
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
     pthread_mutex_init(&_m, &attr);
     pthread_mutexattr_destroy(&attr);
 */
-  }
-
- if(g_lockdep)
-  id = lockdep_register(name.c_str());
-
- if(nullptr != cct) {
-   PerfCountersBuilder b(cct, string("mutex-") + name, l_mutex_first, l_mutex_last);
-   b.add_time_avg(l_mutex_wait, "wait", "Average time of mutex in locked state");
-   logger = b.create_perf_counters();
-   cct->get_perfcounters_collection()->add(logger);
-   logger->set(l_mutex_wait, 0);
- }
+    if (g_lockdep)
+     _register();
 }
 
-Mutex::Mutex(const std::string& name_, lockdep_flag ld_flag)
- : Mutex(name_, nullptr)
-{
- assert(lockdep_flag::disable == ld_flag);
- // JFW: I've seen this happen only once in the code so far...
- lockdep = static_cast<bool>(ld_flag); 
-}
-
-Mutex::Mutex(const std::string& name_)
- : Mutex(name_, nullptr)
-{}
-
-Mutex::~Mutex()
+BasicMutex::~BasicMutex()
 {
   assert(nlocks == 0);
 
-  if (cct && logger) {
-    cct->get_perfcounters_collection()->remove(logger);
-#warning JFW move me to a smart pointer
-    delete logger;
+  // helgrind gets confused by condition wakeups leading to mutex destruction
+  ANNOTATE_BENIGN_RACE_SIZED(&mtx, sizeof(mtx), "Mutex primitive");
+
+  if (cct && logger) 
+   cct->get_perfcounters_collection()->remove(logger);
+
+  if (g_lockdep) 
+   lockdep_unregister(lockdep_id);
+}
+
+void BasicMutex::Lock()
+{
+ return Lock(lockdep_flag::enable);
+}
+
+void BasicMutex::Lock(const lockdep_flag lockdep)
+{
+  if (static_cast<bool>(lockdep) && g_lockdep) 
+   _will_lock();
+
+  if (logger && cct && cct->_conf->mutex_perf_counter) {
+    utime_t start;
+    // instrumented mutex enabled
+    start = ceph_clock_now();
+    if (TryLock()) {
+	return;
+    }
+
+    mtx.lock();
+
+    logger->tinc(l_mutex_wait,
+		 ceph_clock_now() - start);
+  } else { 
+    mtx.lock();
   }
 
+  if (static_cast<bool>(lockdep) && g_lockdep) 
+   _locked();
+
+  _post_lock();
+}
+
+bool BasicMutex::TryLock()
+{
+ if (false == mtx.try_lock())
+  return false;
+
+ if (g_lockdep)
+  _locked();
+ 
+ _post_lock();
+
+ return true;
+}
+
+void BasicMutex::Unlock()
+{
+  _pre_unlock();
+
+  if (g_lockdep) 
+   _will_unlock();
+
+  mtx.unlock();
+}
+
+/*
+Mutex::Mutex(const std::string &n, bool r, bool ld,
+	     bool bt,
+	     CephContext *cct) :
+  name(n), id(-1), recursive(r), lockdep(ld), backtrace(bt), nlock(0),
+  locked_by(0), cct(cct), logger(0)
+{
+  ANNOTATE_BENIGN_RACE_SIZED(&id, sizeof(id), "Mutex lockdep id");
+  ANNOTATE_BENIGN_RACE_SIZED(&nlock, sizeof(nlock), "Mutex nlock");
+  ANNOTATE_BENIGN_RACE_SIZED(&locked_by, sizeof(locked_by), "Mutex locked_by");
+  if (cct) {
+    PerfCountersBuilder b(cct, string("mutex-") + name,
+			  l_mutex_first, l_mutex_last);
+    b.add_time_avg(l_mutex_wait, "wait", "Average time of mutex in locked state");
+    logger = b.create_perf_counters();
+    cct->get_perfcounters_collection()->add(logger);
+    logger->set(l_mutex_wait, 0);
+  }
+  if (recursive) {
+    // Mutexes of type PTHREAD_MUTEX_RECURSIVE do all the same checks as
+    // mutexes of type PTHREAD_MUTEX_ERRORCHECK.
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&_m,&attr);
+    pthread_mutexattr_destroy(&attr);
+    if (lockdep && g_lockdep)
+      _register();
+  }
+  else if (lockdep) {
+    // If the mutex type is PTHREAD_MUTEX_ERRORCHECK, then error checking
+    // shall be provided. If a thread attempts to relock a mutex that it
+    // has already locked, an error shall be returned. If a thread
+    // attempts to unlock a mutex that it has not locked or a mutex which
+    // is unlocked, an error shall be returned.
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
+    pthread_mutex_init(&_m, &attr);
+    pthread_mutexattr_destroy(&attr);
+    if (g_lockdep)
+      _register();
+  }
+  else {
+    // If the mutex type is PTHREAD_MUTEX_DEFAULT, attempting to recursively
+    // lock the mutex results in undefined behavior. Attempting to unlock the
+    // mutex if it was not locked by the calling thread results in undefined
+    // behavior. Attempting to unlock the mutex if it is not locked results in
+    // undefined behavior.
+    pthread_mutex_init(&_m, NULL);
+  }
+}
+
+Mutex::~Mutex() {
+  assert(nlock == 0);
+
+  // helgrind gets confused by condition wakeups leading to mutex destruction
+  ANNOTATE_BENIGN_RACE_SIZED(&_m, sizeof(_m), "Mutex primitive");
+  pthread_mutex_destroy(&_m);
+
+  if (cct && logger) {
+    cct->get_perfcounters_collection()->remove(logger);
+    delete logger;
+  }
   if (lockdep && g_lockdep) {
     lockdep_unregister(id);
   }
 }
 
-void BasicMutex::Lock(bool no_lockdep)
-{
- if(lockdep && g_lockdep && !no_lockdep) 
-  id = lockdep_will_lock(name.c_str(), id, backtrace);
+void Mutex::Lock(bool no_lockdep) {
+  int r;
 
- lock_self(*this);
+  if (lockdep && g_lockdep && !no_lockdep && !recursive) _will_lock();
 
- if(lockdep && g_lockdep) 
-  id = lockdep_locked(name.c_str(), id, backtrace);
+  if (logger && cct && cct->_conf->mutex_perf_counter) {
+    utime_t start;
+    // instrumented mutex enabled
+    start = ceph_clock_now();
+    if (TryLock()) {
+      goto out;
+    }
+
+    r = pthread_mutex_lock(&_m);
+
+    logger->tinc(l_mutex_wait,
+		 ceph_clock_now() - start);
+  } else {
+    r = pthread_mutex_lock(&_m);
+  }
+
+  assert(r == 0);
+  if (lockdep && g_lockdep) _locked();
+  _post_lock();
+
+out:
+  ;
 }
 
-void BasicMutex::Unlock()
-{
- if(lockdep && g_lockdep)
-  id = lockdep_will_unlock(name.c_str(), id);
-
- unlock_self(*this);
-
- assert(0 == nlocks);
+void Mutex::Unlock() {
+  _pre_unlock();
+  if (lockdep && g_lockdep) _will_unlock();
+  int r = pthread_mutex_unlock(&_m);
+  assert(r == 0);
 }
-
-bool BasicMutex::TryLock() 
-{
- if(try_lock_self(*this))
-  return true;
-
- if(lockdep && g_lockdep)
-  id = lockdep_locked(name.c_str(), id, backtrace);
-
- return false;
-}
-
-void RecursiveMutex::Lock(bool no_lockdep)
-{
- // Should never be true on a recursive mutex:
- assert(no_lockdep);
-
- lock_self(*this);
-}
-
-void RecursiveMutex::Unlock()
-{
- unlock_self(*this);
-}
-
-bool RecursiveMutex::TryLock()
-{
- return try_lock_self(*this);
-}
-
+*/
