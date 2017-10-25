@@ -241,7 +241,7 @@ struct SignalHandler : public Thread {
   safe_handler *handlers[32] = {nullptr};
 
   /// to protect the handlers array
-  Mutex lock;
+  BasicMutex lock;
 
   SignalHandler()
     : stop(false), lock("SignalHandler::lock")
