@@ -71,20 +71,20 @@ struct OnReadComplete : public Context {
 };
 
 void Bencher::start_op() {
-  Mutex::Locker l(lock);
+  BasicMutex::Locker l(lock);
   while (open_ops >= max_in_flight)
     open_ops_cond.Wait(lock);
   ++open_ops;
 }
 
 void Bencher::drain_ops() {
-  Mutex::Locker l(lock);
+  BasicMutex::Locker l(lock);
   while (open_ops)
     open_ops_cond.Wait(lock);
 }
 
 void Bencher::complete_op() {
-  Mutex::Locker l(lock);
+  BasicMutex::Locker l(lock);
   assert(open_ops > 0);
   --open_ops;
   open_ops_cond.Signal();
@@ -92,15 +92,15 @@ void Bencher::complete_op() {
 
 struct OnFinish {
   bool *done;
-  Mutex *lock;
+  BasicMutex *lock;
   Cond *cond;
   OnFinish(
     bool *done,
-    Mutex *lock,
+    BasicMutex *lock,
     Cond *cond) :
     done(done), lock(lock), cond(cond) {}
   ~OnFinish() {
-    Mutex::Locker l(*lock);
+    BasicMutex::Locker l(*lock);
     *done = true;
     cond->Signal();
   }
@@ -116,7 +116,7 @@ void Bencher::init(
   for (uint64_t i = 0; i < size; ++i) {
     bl.append(0);
   }
-  Mutex lock("init_lock");
+  BasicMutex lock("init_lock");
   Cond cond;
   bool done = 0;
   {
@@ -138,7 +138,7 @@ void Bencher::init(
     }
   }
   {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     while (!done)
       cond.Wait(lock);
   }

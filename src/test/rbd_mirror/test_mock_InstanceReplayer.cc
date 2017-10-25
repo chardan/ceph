@@ -33,7 +33,7 @@ namespace mirror {
 template <>
 struct Threads<librbd::MockTestImageCtx> {
   MockSafeTimer *timer;
-  Mutex &timer_lock;
+  BasicMutex &timer_lock;
   Cond timer_cond;
 
   MockContextWQ *work_queue;
@@ -157,7 +157,7 @@ public:
           } else {
             m_threads->work_queue->queue(
               new FunctionContext([&mock_threads, ctx](int) {
-                Mutex::Locker timer_lock(mock_threads.timer_lock);
+                BasicMutex::Locker timer_lock(mock_threads.timer_lock);
                 ctx->complete(0);
               }), 0);
           }
@@ -291,7 +291,7 @@ TEST_F(TestMockInstanceReplayer, RemoveFinishedImage) {
 
   ASSERT_TRUE(timer_ctx1 != nullptr);
   {
-    Mutex::Locker timer_locker(mock_threads.timer_lock);
+    BasicMutex::Locker timer_locker(mock_threads.timer_lock);
     timer_ctx1->complete(0);
   }
 

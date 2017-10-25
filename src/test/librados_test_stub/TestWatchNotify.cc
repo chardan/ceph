@@ -31,7 +31,7 @@ void TestWatchNotify::flush(TestRadosClient *rados_client) {
 
   ldout(cct, 20) << "enter" << dendl;
   // block until we know no additional async notify callbacks will occur
-  Mutex::Locker locker(m_lock);
+  BasicMutex::Locker locker(m_lock);
   while (m_pending_notifies > 0) {
     m_file_watcher_cond.Wait(m_lock);
   }
@@ -39,7 +39,7 @@ void TestWatchNotify::flush(TestRadosClient *rados_client) {
 
 int TestWatchNotify::list_watchers(const std::string& o,
                                    std::list<obj_watch_t> *out_watchers) {
-  Mutex::Locker lock(m_lock);
+  BasicMutex::Locker lock(m_lock);
   SharedWatcher watcher = get_watcher(o);
 
   out_watchers->clear();
@@ -82,7 +82,7 @@ void TestWatchNotify::aio_notify(TestRadosClient *rados_client,
                                  Context *on_notify) {
   CephContext *cct = rados_client->cct();
 
-  Mutex::Locker lock(m_lock);
+  BasicMutex::Locker lock(m_lock);
   ++m_pending_notifies;
   uint64_t notify_id = ++m_notify_id;
 
@@ -122,7 +122,7 @@ void TestWatchNotify::notify_ack(TestRadosClient *rados_client,
   CephContext *cct = rados_client->cct();
   ldout(cct, 20) << "notify_id=" << notify_id << ", handle=" << handle
 		 << ", gid=" << gid << dendl;
-  Mutex::Locker lock(m_lock);
+  BasicMutex::Locker lock(m_lock);
   WatcherID watcher_id = std::make_pair(gid, handle);
   ack_notify(rados_client, o, notify_id, watcher_id, bl);
   finish_notify(rados_client, o, notify_id);
@@ -134,7 +134,7 @@ int TestWatchNotify::watch(TestRadosClient *rados_client,
                            librados::WatchCtx2 *ctx2) {
   CephContext *cct = rados_client->cct();
 
-  Mutex::Locker lock(m_lock);
+  BasicMutex::Locker lock(m_lock);
   SharedWatcher watcher = get_watcher(o);
 
   WatchHandle watch_handle;
@@ -159,7 +159,7 @@ int TestWatchNotify::unwatch(TestRadosClient *rados_client,
   CephContext *cct = rados_client->cct();
 
   ldout(cct, 20) << "handle=" << handle << dendl;
-  Mutex::Locker locker(m_lock);
+  BasicMutex::Locker locker(m_lock);
   for (FileWatchers::iterator it = m_file_watchers.begin();
        it != m_file_watchers.end(); ++it) {
     SharedWatcher watcher = it->second;
@@ -193,7 +193,7 @@ void TestWatchNotify::execute_notify(TestRadosClient *rados_client,
 
   ldout(cct, 20) << "oid=" << oid << ", notify_id=" << notify_id << dendl;
 
-  Mutex::Locker lock(m_lock);
+  BasicMutex::Locker lock(m_lock);
   SharedWatcher watcher = get_watcher(oid);
   WatchHandles &watch_handles = watcher->watch_handles;
 
@@ -315,7 +315,7 @@ void TestWatchNotify::finish_notify(TestRadosClient *rados_client,
 }
 
 void TestWatchNotify::blacklist(uint32_t nonce) {
-  Mutex::Locker locker(m_lock);
+  BasicMutex::Locker locker(m_lock);
 
   for (auto file_it = m_file_watchers.begin();
        file_it != m_file_watchers.end(); ) {

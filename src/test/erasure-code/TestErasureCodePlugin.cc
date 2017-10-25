@@ -117,7 +117,7 @@ TEST_F(ErasureCodePluginRegistryTest, all)
   EXPECT_TRUE(erasure_code.get());
   ErasureCodePlugin *plugin = 0;
   {
-    Mutex::Locker l(instance.lock);
+    BasicMutex::Locker l(instance.lock);
     EXPECT_EQ(-EEXIST, instance.load("example", directory, &plugin, &cerr));
     EXPECT_EQ(-ENOENT, instance.remove("does not exist"));
     EXPECT_EQ(0, instance.remove("example"));

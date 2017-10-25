@@ -72,7 +72,7 @@ struct ManagedLock<MockTestImageCtx> {
 
   ContextWQ *m_work_queue;
 
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
 
   bool is_lock_owner() const {
     return MockManagedLock::get_instance().is_lock_owner();
@@ -170,7 +170,7 @@ namespace mirror {
 
 template <>
 struct Threads<librbd::MockTestImageCtx> {
-  Mutex &timer_lock;
+  BasicMutex &timer_lock;
   SafeTimer *timer;
   ContextWQ *work_queue;
 

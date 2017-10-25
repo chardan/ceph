@@ -69,7 +69,7 @@ struct ThreadPool::PointerWQ<librbd::io::ImageRequest<librbd::MockTestImageCtx>>
   typedef librbd::io::ImageRequest<librbd::MockTestImageCtx> ImageRequest;
   static PointerWQ* s_instance;
 
-  Mutex m_lock;
+  BasicMutex m_lock;
 
   PointerWQ(const std::string &name, time_t, int, ThreadPool *)
     : m_lock(name) {
@@ -92,12 +92,12 @@ struct ThreadPool::PointerWQ<librbd::io::ImageRequest<librbd::MockTestImageCtx>>
   void register_work_queue() {
     // no-op
   }
-  Mutex &get_pool_lock() {
+  BasicMutex &get_pool_lock() {
     return m_lock;
   }
 
   void* invoke_dequeue() {
-    Mutex::Locker locker(m_lock);
+    BasicMutex::Locker locker(m_lock);
     return _void_dequeue();
   }
   void invoke_process(ImageRequest *image_request) {

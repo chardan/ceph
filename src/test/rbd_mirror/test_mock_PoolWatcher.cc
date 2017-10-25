@@ -89,7 +89,7 @@ namespace mirror {
 template <>
 struct Threads<librbd::MockTestImageCtx> {
   MockSafeTimer *timer;
-  Mutex &timer_lock;
+  BasicMutex &timer_lock;
 
   MockContextWQ *work_queue;
 
@@ -217,7 +217,7 @@ public:
     EXPECT_CALL(mock_listener, mock_handle_update(mirror_uuid, added_image_ids,
                                                   removed_image_ids))
       .WillOnce(WithoutArgs(Invoke([this]() {
-          Mutex::Locker locker(m_lock);
+          BasicMutex::Locker locker(m_lock);
           ++m_update_count;
           m_cond.Signal();
         })));
@@ -242,7 +242,7 @@ public:
       .WillOnce(DoAll(WithArg<1>(Invoke([this](Context *ctx) {
                         auto wrapped_ctx =
 			  new FunctionContext([this, ctx](int r) {
-			      Mutex::Locker timer_locker(m_threads->timer_lock);
+			      BasicMutex::Locker timer_locker(m_threads->timer_lock);
 			      ctx->complete(r);
 			    });
 			m_threads->work_queue->queue(wrapped_ctx, 0);
@@ -257,7 +257,7 @@ public:
   }
 
   bool wait_for_update(uint32_t count) {
-    Mutex::Locker locker(m_lock);
+    BasicMutex::Locker locker(m_lock);
     while (m_update_count < count) {
       if (m_cond.WaitInterval(m_lock, utime_t(10, 0)) != 0) {
         break;
@@ -271,7 +271,7 @@ public:
     return true;
   }
 
-  Mutex m_lock;
+  BasicMutex m_lock;
   Cond m_cond;
   uint32_t m_update_count = 0;
 };
@@ -352,7 +352,7 @@ TEST_F(TestMockPoolWatcher, NotifyDuringRefresh) {
                       &refresh_sent]() {
        *mock_refresh_images_request.image_ids = image_ids;
 
-        Mutex::Locker locker(m_lock);
+        BasicMutex::Locker locker(m_lock);
         refresh_sent = true;
         m_cond.Signal();
       }));
@@ -370,7 +370,7 @@ TEST_F(TestMockPoolWatcher, NotifyDuringRefresh) {
   mock_pool_watcher.init(nullptr);
 
   {
-    Mutex::Locker locker(m_lock);
+    BasicMutex::Locker locker(m_lock);
     while (!refresh_sent) {
       m_cond.Wait(m_lock);
     }
@@ -416,7 +416,7 @@ TEST_F(TestMockPoolWatcher, Notify) {
   Context *notify_ctx = nullptr;
   EXPECT_CALL(*mock_threads.work_queue, queue(_, _))
     .WillOnce(Invoke([this, &notify_ctx](Context *ctx, int r) {
-        Mutex::Locker locker(m_lock);
+        BasicMutex::Locker locker(m_lock);
         ASSERT_EQ(nullptr, notify_ctx);
         notify_ctx = ctx;
         m_cond.Signal();

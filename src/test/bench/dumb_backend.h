@@ -50,12 +50,12 @@ class DumbBackend : public Backend {
   } thread;
   friend class SyncThread;
 
-  Mutex sync_loop_mutex;
+  BasicMutex sync_loop_mutex;
   Cond sync_loop_cond;
   int sync_loop_stop; // 0 for running, 1 for stopping, 2 for stopped
   void sync_loop();
 
-  Mutex pending_commit_mutex;
+  BasicMutex pending_commit_mutex;
   set<Context*> pending_commits;
 
   class WriteQueue : public ThreadPool::WorkQueue<write_item> {
@@ -136,7 +136,7 @@ public:
   }
   ~DumbBackend() override {
     {
-      Mutex::Locker l(sync_loop_mutex);
+      BasicMutex::Locker l(sync_loop_mutex);
       if (sync_loop_stop == 0)
 	sync_loop_stop = 1;
       while (sync_loop_stop < 2)

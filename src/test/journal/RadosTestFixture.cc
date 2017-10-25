@@ -52,7 +52,7 @@ void RadosTestFixture::TearDown() {
   }
 
   {
-    Mutex::Locker locker(m_timer_lock);
+    BasicMutex::Locker locker(m_timer_lock);
     m_timer->shutdown();
   }
   delete m_timer;
@@ -116,7 +116,7 @@ int RadosTestFixture::init_metadata(journal::JournalMetadataPtr metadata) {
 }
 
 bool RadosTestFixture::wait_for_update(journal::JournalMetadataPtr metadata) {
-  Mutex::Locker locker(m_listener.mutex);
+  BasicMutex::Locker locker(m_listener.mutex);
   while (m_listener.updates[metadata.get()] == 0) {
     if (m_listener.cond.WaitInterval(
 	  m_listener.mutex, utime_t(10, 0)) != 0) {

@@ -168,8 +168,8 @@ void AioWriter::set_aioc(librados::callback_t complete,
 void OmapBench::aio_is_safe(rados_completion_t c, void *arg) {
   AioWriter *aiow = reinterpret_cast<AioWriter *>(arg);
   aiow->stop_time();
-  Mutex * data_lock = &aiow->ob->data_lock;
-  Mutex * thread_is_free_lock = &aiow->ob->thread_is_free_lock;
+  BasicMutex * data_lock = &aiow->ob->data_lock;
+  BasicMutex * thread_is_free_lock = &aiow->ob->thread_is_free_lock;
   Cond * thread_is_free = &aiow->ob->thread_is_free;
   int &busythreads_count = aiow->ob->busythreads_count;
   o_bench_data &data = aiow->ob->data;
@@ -369,7 +369,7 @@ int OmapBench::test_write_objects_in_parallel(omap_generator_t omap_gen) {
   comp = NULL;
   AioWriter *this_aio_writer;
 
-  Mutex::Locker l(thread_is_free_lock);
+  BasicMutex::Locker l(thread_is_free_lock);
   for (int i = 0; i < objects; i++) {
     assert(busythreads_count <= threads);
     //wait for a writer to be free

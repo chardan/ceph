@@ -88,7 +88,7 @@ public:
                                   WithArg<2>(CompleteContext(r, mock_image_ctx.image_ctx->op_work_queue))));
   }
 
-  Mutex m_lock;
+  BasicMutex m_lock;
   ImageClientMeta m_client_meta;
   uint64_t m_tag_tid = 0;
   TagData m_tag_data;

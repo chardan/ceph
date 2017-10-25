@@ -54,7 +54,7 @@ protected:
   Messenger *msg;
   MonClient monc;
 
-  Mutex lock;
+  BasicMutex lock;
 
   set<int> wanted;
 
@@ -221,7 +221,7 @@ class MonMsgTest : public MonClientHelper,
 protected:
   int reply_type = 0;
   Message *reply_msg = nullptr;
-  Mutex lock;
+  BasicMutex lock;
   Cond cond;
 
   MonMsgTest() :

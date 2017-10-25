@@ -23,7 +23,7 @@ public:
   static const uint64_t max_fetch_bytes = T::max_fetch_bytes;
 
   struct ReplayHandler : public journal::ReplayHandler {
-    Mutex lock;
+    BasicMutex lock;
     Cond cond;
     bool entries_available;
     bool complete;
@@ -37,13 +37,13 @@ public:
     void put() override {}
 
     void handle_entries_available() override {
-      Mutex::Locker locker(lock);
+      BasicMutex::Locker locker(lock);
       entries_available = true;
       cond.Signal();
     }
 
     void handle_complete(int r) override {
-      Mutex::Locker locker(lock);
+      BasicMutex::Locker locker(lock);
       complete = true;
       complete_result = r;
       cond.Signal();
@@ -97,7 +97,7 @@ public:
         break;
       }
 
-      Mutex::Locker locker(m_replay_hander.lock);
+      BasicMutex::Locker locker(m_replay_hander.lock);
       if (m_replay_hander.entries_available) {
         m_replay_hander.entries_available = false;
       } else if (m_replay_hander.cond.WaitInterval(
@@ -109,7 +109,7 @@ public:
   }
 
   bool wait_for_complete(journal::JournalPlayer *player) {
-    Mutex::Locker locker(m_replay_hander.lock);
+    BasicMutex::Locker locker(m_replay_hander.lock);
     while (!m_replay_hander.complete) {
       journal::Entry entry;
       uint64_t commit_tid;

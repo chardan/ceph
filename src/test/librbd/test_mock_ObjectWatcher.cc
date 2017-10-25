@@ -145,13 +145,13 @@ public:
   librados::WatchCtx2 *m_watch_ctx = nullptr;
 
   void notify_watch() {
-    Mutex::Locker locker(m_lock);
+    BasicMutex::Locker locker(m_lock);
     ++m_watch_count;
     m_cond.Signal();
   }
 
   bool wait_for_watch(MockImageCtx &mock_image_ctx, size_t count) {
-    Mutex::Locker locker(m_lock);
+    BasicMutex::Locker locker(m_lock);
     while (m_watch_count < count) {
       if (m_cond.WaitInterval(m_lock, utime_t(10, 0)) != 0) {
         return false;
@@ -160,7 +160,7 @@ public:
     return true;
   }
 
-  Mutex m_lock;
+  BasicMutex m_lock;
   Cond m_cond;
   size_t m_watch_count = 0;
 };

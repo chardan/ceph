@@ -52,22 +52,22 @@ typename T::iterator rand_choose(T &cont) {
 
 class OnApplied : public Context {
 public:
-  Mutex *lock;
+  BasicMutex *lock;
   Cond *cond;
   int *in_progress;
   ObjectStore::Transaction *t;
-  OnApplied(Mutex *lock,
+  OnApplied(BasicMutex *lock,
 	    Cond *cond,
 	    int *in_progress,
 	    ObjectStore::Transaction *t)
     : lock(lock), cond(cond),
       in_progress(in_progress), t(t) {
-    Mutex::Locker l(*lock);
+    BasicMutex::Locker l(*lock);
     (*in_progress)++;
   }
 
   void finish(int r) override {
-    Mutex::Locker l(*lock);
+    BasicMutex::Locker l(*lock);
     (*in_progress)--;
     cond->Signal();
   }
@@ -87,7 +87,7 @@ uint64_t do_run(ObjectStore *store, int attrsize, int numattrs,
 		int run,
 		int transsize, int ops,
 		ostream &out) {
-  Mutex lock("lock");
+  BasicMutex lock("lock");
   Cond cond;
   int in_flight = 0;
   ObjectStore::Sequencer osr(__func__);
@@ -116,7 +116,7 @@ uint64_t do_run(ObjectStore *store, int attrsize, int numattrs,
   uint64_t start = get_time();
   for (int i = 0; i < ops; ++i) {
     {
-      Mutex::Locker l(lock);
+      BasicMutex::Locker l(lock);
       while (in_flight >= THREADS)
 	cond.Wait(lock);
     }
@@ -141,7 +141,7 @@ uint64_t do_run(ObjectStore *store, int attrsize, int numattrs,
     delete t;
   }
   {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     while (in_flight)
       cond.Wait(lock);
   }

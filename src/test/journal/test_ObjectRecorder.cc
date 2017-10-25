@@ -22,8 +22,8 @@ public:
   }
 
   struct Handler : public journal::ObjectRecorder::Handler {
-    Mutex lock;
-    shared_ptr<Mutex> object_lock;
+    BasicMutex lock;
+    shared_ptr<BasicMutex> object_lock;
     Cond cond;
     bool is_closed = false;
     uint32_t overflows = 0;
@@ -32,12 +32,12 @@ public:
     }
 
     void closed(journal::ObjectRecorder *object_recorder) override {
-      Mutex::Locker locker(lock);
+      BasicMutex::Locker locker(lock);
       is_closed = true;
       cond.Signal();
     }
     void overflow(journal::ObjectRecorder *object_recorder) override {
-      Mutex::Locker locker(lock);
+      BasicMutex::Locker locker(lock);
       journal::AppendBuffers append_buffers;
       object_lock->Lock();
       object_recorder->claim_append_buffers(&append_buffers);
@@ -49,7 +49,7 @@ public:
   };
 
   typedef std::list<journal::ObjectRecorderPtr> ObjectRecorders;
-  typedef std::map<std::string, shared_ptr<Mutex>> ObjectRecorderLocksMap;
+  typedef std::map<std::string, shared_ptr<BasicMutex>> ObjectRecorderLocksMap;
 
   ObjectRecorders m_object_recorders;
   ObjectRecorderLocksMap m_object_recorder_locks;
@@ -93,7 +93,7 @@ public:
   }
 
   journal::ObjectRecorderPtr create_object(const std::string &oid,
-                                           uint8_t order, shared_ptr<Mutex> lock) {
+                                           uint8_t order, shared_ptr<BasicMutex> lock) {
     journal::ObjectRecorderPtr object(new journal::ObjectRecorder(
       m_ioctx, oid, 0, lock, m_work_queue, *m_timer, m_timer_lock, &m_handler,
       order, m_flush_interval, m_flush_bytes, m_flush_age));
@@ -111,7 +111,7 @@ TEST_F(TestObjectRecorder, Append) {
   journal::JournalMetadataPtr metadata = create_metadata(oid);
   ASSERT_EQ(0, init_metadata(metadata));
 
-  shared_ptr<Mutex> lock(new Mutex("object_recorder_lock"));
+  shared_ptr<BasicMutex> lock(new BasicMutex("object_recorder_lock"));
   journal::ObjectRecorderPtr object = create_object(oid, 24, lock);
 
   journal::AppendBuffer append_buffer1 = create_append_buffer(234, 123,
@@ -143,7 +143,7 @@ TEST_F(TestObjectRecorder, AppendFlushByCount) {
   ASSERT_EQ(0, init_metadata(metadata));
 
   set_flush_interval(2);
-  shared_ptr<Mutex> lock(new Mutex("object_recorder_lock"));
+  shared_ptr<BasicMutex> lock(new BasicMutex("object_recorder_lock"));
   journal::ObjectRecorderPtr object = create_object(oid, 24, lock);
 
   journal::AppendBuffer append_buffer1 = create_append_buffer(234, 123,
@@ -174,7 +174,7 @@ TEST_F(TestObjectRecorder, AppendFlushByBytes) {
   ASSERT_EQ(0, init_metadata(metadata));
 
   set_flush_bytes(10);
-  shared_ptr<Mutex> lock(new Mutex("object_recorder_lock"));
+  shared_ptr<BasicMutex> lock(new BasicMutex("object_recorder_lock"));
   journal::ObjectRecorderPtr object = create_object(oid, 24, lock);
 
   journal::AppendBuffer append_buffer1 = create_append_buffer(234, 123,
@@ -205,7 +205,7 @@ TEST_F(TestObjectRecorder, AppendFlushByAge) {
   ASSERT_EQ(0, init_metadata(metadata));
 
   set_flush_age(0.1);
-  shared_ptr<Mutex> lock(new Mutex("object_recorder_lock"));
+  shared_ptr<BasicMutex> lock(new BasicMutex("object_recorder_lock"));
   journal::ObjectRecorderPtr object = create_object(oid, 24, lock);
 
   journal::AppendBuffer append_buffer1 = create_append_buffer(234, 123,
@@ -234,7 +234,7 @@ TEST_F(TestObjectRecorder, AppendFilledObject) {
   journal::JournalMetadataPtr metadata = create_metadata(oid);
   ASSERT_EQ(0, init_metadata(metadata));
 
-  shared_ptr<Mutex> lock(new Mutex("object_recorder_lock"));
+  shared_ptr<BasicMutex> lock(new BasicMutex("object_recorder_lock"));
   journal::ObjectRecorderPtr object = create_object(oid, 12, lock);
 
   std::string payload(2048, '1');
@@ -264,7 +264,7 @@ TEST_F(TestObjectRecorder, Flush) {
   journal::JournalMetadataPtr metadata = create_metadata(oid);
   ASSERT_EQ(0, init_metadata(metadata));
 
-  shared_ptr<Mutex> lock(new Mutex("object_recorder_lock"));
+  shared_ptr<BasicMutex> lock(new BasicMutex("object_recorder_lock"));
   journal::ObjectRecorderPtr object = create_object(oid, 24, lock);
 
   journal::AppendBuffer append_buffer1 = create_append_buffer(234, 123,
@@ -292,7 +292,7 @@ TEST_F(TestObjectRecorder, FlushFuture) {
   journal::JournalMetadataPtr metadata = create_metadata(oid);
   ASSERT_EQ(0, init_metadata(metadata));
 
-  shared_ptr<Mutex> lock(new Mutex("object_recorder_lock"));
+  shared_ptr<BasicMutex> lock(new BasicMutex("object_recorder_lock"));
   journal::ObjectRecorderPtr object = create_object(oid, 24, lock);
 
   journal::AppendBuffer append_buffer = create_append_buffer(234, 123,
@@ -321,7 +321,7 @@ TEST_F(TestObjectRecorder, FlushDetachedFuture) {
   journal::JournalMetadataPtr metadata = create_metadata(oid);
   ASSERT_EQ(0, init_metadata(metadata));
 
-  shared_ptr<Mutex> lock(new Mutex("object_recorder_lock"));
+  shared_ptr<BasicMutex> lock(new BasicMutex("object_recorder_lock"));
   journal::ObjectRecorderPtr object = create_object(oid, 24, lock);
 
   journal::AppendBuffer append_buffer = create_append_buffer(234, 123,
@@ -352,7 +352,7 @@ TEST_F(TestObjectRecorder, Close) {
   ASSERT_EQ(0, init_metadata(metadata));
 
   set_flush_interval(2);
-  shared_ptr<Mutex> lock(new Mutex("object_recorder_lock"));
+  shared_ptr<BasicMutex> lock(new BasicMutex("object_recorder_lock"));
   journal::ObjectRecorderPtr object = create_object(oid, 24, lock);
 
   journal::AppendBuffer append_buffer1 = create_append_buffer(234, 123,
@@ -369,7 +369,7 @@ TEST_F(TestObjectRecorder, Close) {
   lock->Unlock();
 
   {
-    Mutex::Locker locker(m_handler.lock);
+    BasicMutex::Locker locker(m_handler.lock);
     while (!m_handler.is_closed) {
       if (m_handler.cond.WaitInterval(
             m_handler.lock, utime_t(10, 0)) != 0) {
@@ -389,9 +389,9 @@ TEST_F(TestObjectRecorder, Overflow) {
   journal::JournalMetadataPtr metadata = create_metadata(oid);
   ASSERT_EQ(0, init_metadata(metadata));
 
-  shared_ptr<Mutex> lock1(new Mutex("object_recorder_lock_1"));
+  shared_ptr<BasicMutex> lock1(new BasicMutex("object_recorder_lock_1"));
   journal::ObjectRecorderPtr object1 = create_object(oid, 12, lock1);
-  shared_ptr<Mutex> lock2(new Mutex("object_recorder_lock_2"));
+  shared_ptr<BasicMutex> lock2(new BasicMutex("object_recorder_lock_2"));
   journal::ObjectRecorderPtr object2 = create_object(oid, 12, lock2);
 
   std::string payload(2048, '1');
@@ -419,7 +419,7 @@ TEST_F(TestObjectRecorder, Overflow) {
 
   bool overflowed = false;
   {
-    Mutex::Locker locker(m_handler.lock);
+    BasicMutex::Locker locker(m_handler.lock);
     while (m_handler.overflows == 0) {
       if (m_handler.cond.WaitInterval(
             m_handler.lock, utime_t(10, 0)) != 0) {

@@ -66,17 +66,17 @@ public:
 
   int m_max_in_flight;
   std::atomic<int> m_in_flight = { 0 };
-  Mutex m_finished_lock;
+  BasicMutex m_finished_lock;
   Cond m_finished_cond;
 
   void wait_for_ready() {
-    Mutex::Locker locker(m_finished_lock);
+    BasicMutex::Locker locker(m_finished_lock);
     while ((m_max_in_flight > 0) && (m_in_flight >= m_max_in_flight))
       m_finished_cond.Wait(m_finished_lock);
   }
 
   void wait_for_done() {
-    Mutex::Locker locker(m_finished_lock);
+    BasicMutex::Locker locker(m_finished_lock);
     while (m_in_flight)
       m_finished_cond.Wait(m_finished_lock);
   }
@@ -135,7 +135,7 @@ public:
     explicit C_OnFinished(TestObjectStoreState *state) : m_state(state) { }
 
     void finish(int r) override {
-      Mutex::Locker locker(m_state->m_finished_lock);
+      BasicMutex::Locker locker(m_state->m_finished_lock);
       m_state->dec_in_flight();
       m_state->m_finished_cond.Signal();
 

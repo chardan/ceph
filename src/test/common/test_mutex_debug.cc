@@ -21,18 +21,18 @@
 #include "gtest/gtest.h"
 
 
-template<typename Mutex>
-static bool test_try_lock(Mutex* m) {
+template<typename BasicMutex>
+static bool test_try_lock(BasicMutex* m) {
   if (!m->try_lock())
     return false;
   m->unlock();
   return true;
 }
 
-template<typename Mutex>
+template<typename BasicMutex>
 static void test_lock() {
-  Mutex m;
-  auto ttl = &test_try_lock<Mutex>;
+  BasicMutex m;
+  auto ttl = &test_try_lock<BasicMutex>;
 
   m.lock();
   ASSERT_TRUE(m.is_locked());
@@ -53,11 +53,11 @@ static void test_lock() {
   ASSERT_FALSE(!!m);
 }
 
-TEST(MutexDebug, Lock) {
+TEST(BasicMutexDebug, Lock) {
   test_lock<ceph::mutex_debug>();
 }
 
-TEST(MutexDebug, NotRecursive) {
+TEST(BasicMutexDebug, NotRecursive) {
   ceph::mutex_debug m;
   auto ttl = &test_try_lock<mutex_debug>;
 
@@ -74,12 +74,12 @@ TEST(MutexDebug, NotRecursive) {
   ASSERT_TRUE(std::async(std::launch::async, ttl, &m).get());
 }
 
-TEST(MutexRecursiveDebug, Lock) {
+TEST(BasicMutexRecursiveDebug, Lock) {
   test_lock<ceph::mutex_recursive_debug>();
 }
 
 
-TEST(MutexRecursiveDebug, Recursive) {
+TEST(BasicMutexRecursiveDebug, Recursive) {
   ceph::mutex_recursive_debug m;
   auto ttl = &test_try_lock<mutex_recursive_debug>;
 

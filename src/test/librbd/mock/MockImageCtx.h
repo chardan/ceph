@@ -250,12 +250,12 @@ struct MockImageCtx {
 
   RWLock &owner_lock;
   RWLock &md_lock;
-  Mutex &cache_lock;
+  BasicMutex &cache_lock;
   RWLock &snap_lock;
   RWLock &parent_lock;
   RWLock &object_map_lock;
-  Mutex &async_ops_lock;
-  Mutex &copyup_list_lock;
+  BasicMutex &async_ops_lock;
+  BasicMutex &copyup_list_lock;
 
   uint8_t order;
   uint64_t size;

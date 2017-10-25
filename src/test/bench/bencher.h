@@ -33,7 +33,7 @@ private:
   const uint64_t max_duration;
   const uint64_t max_ops;
 
-  Mutex lock;
+  BasicMutex lock;
   Cond open_ops_cond;
   uint64_t open_ops;
   void start_op();

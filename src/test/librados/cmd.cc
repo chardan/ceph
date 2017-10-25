@@ -234,14 +234,18 @@ TEST(LibRadosCmd, PGCmdPP) {
 
 struct Log {
   list<string> log;
+
   std::condition_variable cond;
   std::mutex lock;
 
+  Log() : lock("l::lock") {}
+
   bool contains(const string& str) {
     std::lock_guard<std::mutex> l(lock);
+
     for (list<string>::iterator p = log.begin(); p != log.end(); ++p) {
       if (p->find(str) != std::string::npos)
-	return true;
+	    return true;
     }
     return false;
   }

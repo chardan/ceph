@@ -77,7 +77,7 @@ public:
 		  << ", " << cookie << ", " << notifier_id << std::endl;
         */
 
-	Mutex::Locker l(m_parent.m_callback_lock);
+	BasicMutex::Locker l(m_parent.m_callback_lock);
         m_parent.m_notify_payloads[notify_op] = payload;
 
         bufferlist reply;
@@ -133,7 +133,7 @@ public:
   }
 
   bool wait_for_notifies(librbd::ImageCtx &ictx) {
-    Mutex::Locker l(m_callback_lock);
+    BasicMutex::Locker l(m_callback_lock);
     while (m_notifies.size() < m_notify_acks.size()) {
       int r = m_callback_cond.WaitInterval(m_callback_lock,
 					   utime_t(10, 0));
@@ -211,13 +211,13 @@ public:
 
   AsyncRequestId m_async_request_id;
 
-  Mutex m_callback_lock;
+  BasicMutex m_callback_lock;
   Cond m_callback_cond;
 
 };
 
 struct ProgressContext : public librbd::ProgressContext {
-  Mutex mutex;
+  BasicMutex mutex;
   Cond cond;
   bool received;
   uint64_t offset;
@@ -227,7 +227,7 @@ struct ProgressContext : public librbd::ProgressContext {
                       offset(0), total(0) {}
 
   int update_progress(uint64_t offset_, uint64_t total_) override {
-    Mutex::Locker l(mutex);
+    BasicMutex::Locker l(mutex);
     offset = offset_;
     total = total_;
     received = true;
@@ -236,7 +236,7 @@ struct ProgressContext : public librbd::ProgressContext {
   }
 
   bool wait(librbd::ImageCtx *ictx, uint64_t offset_, uint64_t total_) {
-    Mutex::Locker l(mutex);
+    BasicMutex::Locker l(mutex);
     while (!received) {
       int r = cond.WaitInterval(mutex, utime_t(10, 0));
       if (r != 0) {

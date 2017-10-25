@@ -22,12 +22,12 @@ class C_Delay : public Context {
   CephContext *m_cct;
   Context *m_con;
   ceph::timespan m_delay;
-  Mutex *m_lock;
+  BasicMutex *m_lock;
   bufferlist *m_bl;
   uint64_t m_off;
 
 public:
-  C_Delay(CephContext *cct, Context *c, Mutex *lock, uint64_t off,
+  C_Delay(CephContext *cct, Context *c, BasicMutex *lock, uint64_t off,
 	  bufferlist *pbl, uint64_t delay_ns=0)
     : m_cct(cct), m_con(c), m_delay(delay_ns * std::chrono::nanoseconds(1)),
       m_lock(lock), m_bl(pbl), m_off(off) {}
@@ -45,7 +45,7 @@ public:
   }
 };
 
-FakeWriteback::FakeWriteback(CephContext *cct, Mutex *lock, uint64_t delay_ns)
+FakeWriteback::FakeWriteback(CephContext *cct, BasicMutex *lock, uint64_t delay_ns)
   : m_cct(cct), m_lock(lock), m_delay_ns(delay_ns)
 {
   m_finisher = new Finisher(cct);

@@ -14,7 +14,7 @@ class FileStoreTracker {
   const static uint64_t SIZE = 4 * 1024;
   ObjectStore *store;
   KeyValueDB *db;
-  Mutex lock;
+  BasicMutex lock;
   uint64_t restart_seq;
 
   struct OutTransaction {

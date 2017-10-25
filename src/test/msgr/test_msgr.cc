@@ -91,7 +91,7 @@ class FakeDispatcher : public Dispatcher {
     uint64_t get_count() { return count; }
   };
 
-  Mutex lock;
+  BasicMutex lock;
   Cond cond;
   bool is_server;
   bool got_new;
@@ -146,14 +146,14 @@ class FakeDispatcher : public Dispatcher {
     if (is_server) {
       reply_message(m);
     }
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     got_new = true;
     cond.Signal();
     m->put();
     return true;
   }
   bool ms_handle_reset(Connection *con) override {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     lderr(g_ceph_context) << __func__ << " " << con << dendl;
     Session *s = static_cast<Session*>(con->get_priv());
     if (s) {
@@ -164,7 +164,7 @@ class FakeDispatcher : public Dispatcher {
     return true;
   }
   void ms_handle_remote_reset(Connection *con) override {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     lderr(g_ceph_context) << __func__ << " " << con << dendl;
     Session *s = static_cast<Session*>(con->get_priv());
     if (s) {
@@ -196,7 +196,7 @@ class FakeDispatcher : public Dispatcher {
       assert(m->get_source().is_client());
     }
     m->put();
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     got_new = true;
     cond.Signal();
   }
@@ -232,7 +232,7 @@ TEST_P(MessengerTest, SimpleTest) {
   ConnectionRef conn = client_msgr->get_connection(server_msgr->get_myinst());
   {
     ASSERT_EQ(conn->send_message(m), 0);
-    Mutex::Locker l(cli_dispatcher.lock);
+    BasicMutex::Locker l(cli_dispatcher.lock);
     while (!cli_dispatcher.got_new)
       cli_dispatcher.cond.Wait(cli_dispatcher.lock);
     cli_dispatcher.got_new = false;
@@ -252,7 +252,7 @@ TEST_P(MessengerTest, SimpleTest) {
   {
     m = new MPing();
     ASSERT_EQ(conn->send_message(m), 0);
-    Mutex::Locker l(cli_dispatcher.lock);
+    BasicMutex::Locker l(cli_dispatcher.lock);
     while (!cli_dispatcher.got_new)
       cli_dispatcher.cond.Wait(cli_dispatcher.lock);
     cli_dispatcher.got_new = false;
@@ -278,7 +278,7 @@ TEST_P(MessengerTest, SimpleTest) {
   {
     m = new MPing();
     ASSERT_EQ(conn->send_message(m), 0);
-    Mutex::Locker l(cli_dispatcher.lock);
+    BasicMutex::Locker l(cli_dispatcher.lock);
     while (!cli_dispatcher.got_new)
       cli_dispatcher.cond.Wait(cli_dispatcher.lock);
     cli_dispatcher.got_new = false;
@@ -306,7 +306,7 @@ TEST_P(MessengerTest, NameAddrTest) {
   ConnectionRef conn = client_msgr->get_connection(server_msgr->get_myinst());
   {
     ASSERT_EQ(conn->send_message(m), 0);
-    Mutex::Locker l(cli_dispatcher.lock);
+    BasicMutex::Locker l(cli_dispatcher.lock);
     while (!cli_dispatcher.got_new)
       cli_dispatcher.cond.Wait(cli_dispatcher.lock);
     cli_dispatcher.got_new = false;
@@ -367,7 +367,7 @@ TEST_P(MessengerTest, FeatureTest) {
   {
     m = new MPing();
     ASSERT_EQ(conn->send_message(m), 0);
-    Mutex::Locker l(cli_dispatcher.lock);
+    BasicMutex::Locker l(cli_dispatcher.lock);
     while (!cli_dispatcher.got_new)
       cli_dispatcher.cond.Wait(cli_dispatcher.lock);
     cli_dispatcher.got_new = false;
@@ -397,7 +397,7 @@ TEST_P(MessengerTest, TimeoutTest) {
   ConnectionRef conn = client_msgr->get_connection(server_msgr->get_myinst());
   {
     ASSERT_EQ(conn->send_message(m), 0);
-    Mutex::Locker l(cli_dispatcher.lock);
+    BasicMutex::Locker l(cli_dispatcher.lock);
     while (!cli_dispatcher.got_new)
       cli_dispatcher.cond.Wait(cli_dispatcher.lock);
     cli_dispatcher.got_new = false;
@@ -439,7 +439,7 @@ TEST_P(MessengerTest, StatefulTest) {
   {
     m = new MPing();
     ASSERT_EQ(conn->send_message(m), 0);
-    Mutex::Locker l(cli_dispatcher.lock);
+    BasicMutex::Locker l(cli_dispatcher.lock);
     while (!cli_dispatcher.got_new)
       cli_dispatcher.cond.Wait(cli_dispatcher.lock);
     cli_dispatcher.got_new = false;
@@ -456,7 +456,7 @@ TEST_P(MessengerTest, StatefulTest) {
   {
     m = new MPing();
     ASSERT_EQ(conn->send_message(m), 0);
-    Mutex::Locker l(cli_dispatcher.lock);
+    BasicMutex::Locker l(cli_dispatcher.lock);
     while (!cli_dispatcher.got_new)
       cli_dispatcher.cond.Wait(cli_dispatcher.lock);
     cli_dispatcher.got_new = false;
@@ -464,7 +464,7 @@ TEST_P(MessengerTest, StatefulTest) {
   ASSERT_TRUE(static_cast<Session*>(conn->get_priv())->get_count() == 1);
   server_conn = server_msgr->get_connection(client_msgr->get_myinst());
   {
-    Mutex::Locker l(srv_dispatcher.lock);
+    BasicMutex::Locker l(srv_dispatcher.lock);
     while (!srv_dispatcher.got_remote_reset)
       srv_dispatcher.cond.Wait(srv_dispatcher.lock);
   }
@@ -478,13 +478,13 @@ TEST_P(MessengerTest, StatefulTest) {
   ASSERT_FALSE(server_conn->is_connected());
   // ensure client detect server socket closed
   {
-    Mutex::Locker l(cli_dispatcher.lock);
+    BasicMutex::Locker l(cli_dispatcher.lock);
     while (!cli_dispatcher.got_remote_reset)
       cli_dispatcher.cond.Wait(cli_dispatcher.lock);
     cli_dispatcher.got_remote_reset = false;
   }
   {
-    Mutex::Locker l(cli_dispatcher.lock);
+    BasicMutex::Locker l(cli_dispatcher.lock);
     while (!cli_dispatcher.got_connect)
       cli_dispatcher.cond.Wait(cli_dispatcher.lock);
     cli_dispatcher.got_connect = false;
@@ -496,7 +496,7 @@ TEST_P(MessengerTest, StatefulTest) {
     m = new MPing();
     ASSERT_EQ(conn->send_message(m), 0);
     ASSERT_TRUE(conn->is_connected());
-    Mutex::Locker l(cli_dispatcher.lock);
+    BasicMutex::Locker l(cli_dispatcher.lock);
     while (!cli_dispatcher.got_new)
       cli_dispatcher.cond.Wait(cli_dispatcher.lock);
     cli_dispatcher.got_new = false;
@@ -534,7 +534,7 @@ TEST_P(MessengerTest, StatelessTest) {
   {
     m = new MPing();
     ASSERT_EQ(conn->send_message(m), 0);
-    Mutex::Locker l(cli_dispatcher.lock);
+    BasicMutex::Locker l(cli_dispatcher.lock);
     while (!cli_dispatcher.got_new)
       cli_dispatcher.cond.Wait(cli_dispatcher.lock);
     cli_dispatcher.got_new = false;
@@ -548,7 +548,7 @@ TEST_P(MessengerTest, StatelessTest) {
   {
     m = new MPing();
     ASSERT_EQ(conn->send_message(m), 0);
-    Mutex::Locker l(cli_dispatcher.lock);
+    BasicMutex::Locker l(cli_dispatcher.lock);
     while (!cli_dispatcher.got_new)
       cli_dispatcher.cond.Wait(cli_dispatcher.lock);
     cli_dispatcher.got_new = false;
@@ -557,7 +557,7 @@ TEST_P(MessengerTest, StatelessTest) {
   ConnectionRef server_conn = server_msgr->get_connection(client_msgr->get_myinst());
   // server lose state
   {
-    Mutex::Locker l(srv_dispatcher.lock);
+    BasicMutex::Locker l(srv_dispatcher.lock);
     while (!srv_dispatcher.got_new)
       srv_dispatcher.cond.Wait(srv_dispatcher.lock);
   }
@@ -573,7 +573,7 @@ TEST_P(MessengerTest, StatelessTest) {
   {
     m = new MPing();
     ASSERT_EQ(conn->send_message(m), 0);
-    Mutex::Locker l(cli_dispatcher.lock);
+    BasicMutex::Locker l(cli_dispatcher.lock);
     while (!cli_dispatcher.got_new)
       cli_dispatcher.cond.Wait(cli_dispatcher.lock);
     cli_dispatcher.got_new = false;
@@ -607,7 +607,7 @@ TEST_P(MessengerTest, ClientStandbyTest) {
   {
     m = new MPing();
     ASSERT_EQ(conn->send_message(m), 0);
-    Mutex::Locker l(cli_dispatcher.lock);
+    BasicMutex::Locker l(cli_dispatcher.lock);
     while (!cli_dispatcher.got_new)
       cli_dispatcher.cond.Wait(cli_dispatcher.lock);
     cli_dispatcher.got_new = false;
@@ -626,7 +626,7 @@ TEST_P(MessengerTest, ClientStandbyTest) {
     m = new MPing();
     ASSERT_EQ(conn->send_message(m), 0);
     {
-      Mutex::Locker l(cli_dispatcher.lock);
+      BasicMutex::Locker l(cli_dispatcher.lock);
       while (!cli_dispatcher.got_remote_reset)
         cli_dispatcher.cond.Wait(cli_dispatcher.lock);
       cli_dispatcher.got_remote_reset = false;
@@ -638,7 +638,7 @@ TEST_P(MessengerTest, ClientStandbyTest) {
     ASSERT_TRUE(conn->is_connected());
     m = new MPing();
     ASSERT_EQ(conn->send_message(m), 0);
-    Mutex::Locker l(cli_dispatcher.lock);
+    BasicMutex::Locker l(cli_dispatcher.lock);
     while (!cli_dispatcher.got_new)
       cli_dispatcher.cond.Wait(cli_dispatcher.lock);
     cli_dispatcher.got_new = false;
@@ -672,7 +672,7 @@ TEST_P(MessengerTest, AuthTest) {
   ConnectionRef conn = client_msgr->get_connection(server_msgr->get_myinst());
   {
     ASSERT_EQ(conn->send_message(m), 0);
-    Mutex::Locker l(cli_dispatcher.lock);
+    BasicMutex::Locker l(cli_dispatcher.lock);
     while (!cli_dispatcher.got_new)
       cli_dispatcher.cond.Wait(cli_dispatcher.lock);
     cli_dispatcher.got_new = false;
@@ -690,7 +690,7 @@ TEST_P(MessengerTest, AuthTest) {
   {
     MPing *m = new MPing();
     ASSERT_EQ(conn->send_message(m), 0);
-    Mutex::Locker l(cli_dispatcher.lock);
+    BasicMutex::Locker l(cli_dispatcher.lock);
     while (!cli_dispatcher.got_new)
       cli_dispatcher.cond.Wait(cli_dispatcher.lock);
     cli_dispatcher.got_new = false;
@@ -736,7 +736,7 @@ TEST_P(MessengerTest, MessageTest) {
     conn->send_message(m);
     utime_t t;
     t += 1000*1000*500;
-    Mutex::Locker l(cli_dispatcher.lock);
+    BasicMutex::Locker l(cli_dispatcher.lock);
     while (!cli_dispatcher.got_new)
       cli_dispatcher.cond.WaitInterval(cli_dispatcher.lock, t);
     ASSERT_TRUE(cli_dispatcher.got_new);
@@ -754,7 +754,7 @@ TEST_P(MessengerTest, MessageTest) {
     conn->send_message(m);
     utime_t t;
     t += 1000*1000*500;
-    Mutex::Locker l(cli_dispatcher.lock);
+    BasicMutex::Locker l(cli_dispatcher.lock);
     while (!cli_dispatcher.got_new)
       cli_dispatcher.cond.WaitInterval(cli_dispatcher.lock, t);
     ASSERT_TRUE(cli_dispatcher.got_new);
@@ -799,7 +799,7 @@ ostream& operator<<(ostream& out, const Payload &pl)
 
 class SyntheticDispatcher : public Dispatcher {
  public:
-  Mutex lock;
+  BasicMutex lock;
   Cond cond;
   bool is_server;
   bool got_new;
@@ -825,7 +825,7 @@ class SyntheticDispatcher : public Dispatcher {
   }
 
   void ms_handle_fast_connect(Connection *con) override {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     list<uint64_t> c = conn_sent[con];
     for (list<uint64_t>::iterator it = c.begin();
          it != c.end(); ++it)
@@ -835,7 +835,7 @@ class SyntheticDispatcher : public Dispatcher {
     cond.Signal();
   }
   void ms_handle_fast_accept(Connection *con) override {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     list<uint64_t> c = conn_sent[con];
     for (list<uint64_t>::iterator it = c.begin();
          it != c.end(); ++it)
@@ -848,7 +848,7 @@ class SyntheticDispatcher : public Dispatcher {
   }
   bool ms_handle_reset(Connection *con) override;
   void ms_handle_remote_reset(Connection *con) override {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     list<uint64_t> c = conn_sent[con];
     for (list<uint64_t>::iterator it = c.begin();
          it != c.end(); ++it)
@@ -873,11 +873,11 @@ class SyntheticDispatcher : public Dispatcher {
       lderr(g_ceph_context) << __func__ << " conn=" << m->get_connection() << pl << dendl;
       reply_message(m, pl);
       m->put();
-      Mutex::Locker l(lock);
+      BasicMutex::Locker l(lock);
       got_new = true;
       cond.Signal();
     } else {
-      Mutex::Locker l(lock);
+      BasicMutex::Locker l(lock);
       if (sent.count(pl.seq)) {
 	lderr(g_ceph_context) << __func__ << " conn=" << m->get_connection() << pl << dendl;
 	ASSERT_EQ(conn_sent[m->get_connection()].front(), pl.seq);
@@ -915,7 +915,7 @@ class SyntheticDispatcher : public Dispatcher {
     ::encode(pl, bl);
     m->set_data(bl);
     if (!con->get_messenger()->get_default_policy().lossy) {
-      Mutex::Locker l(lock);
+      BasicMutex::Locker l(lock);
       sent[pl.seq] = pl.data;
       conn_sent[con].push_back(pl.seq);
     }
@@ -924,12 +924,12 @@ class SyntheticDispatcher : public Dispatcher {
   }
 
   uint64_t get_pending() {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     return sent.size();
   }
 
   void clear_pending(ConnectionRef con) {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
 
     for (list<uint64_t>::iterator it = conn_sent[con].begin();
          it != conn_sent[con].end(); ++it)
@@ -948,7 +948,7 @@ class SyntheticDispatcher : public Dispatcher {
 
 
 class SyntheticWorkload {
-  Mutex lock;
+  BasicMutex lock;
   Cond cond;
   set<Messenger*> available_servers;
   set<Messenger*> available_clients;
@@ -1034,7 +1034,7 @@ class SyntheticWorkload {
   }
 
   void generate_connection() {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     if (!can_create_connection())
       return ;
 
@@ -1072,7 +1072,7 @@ class SyntheticWorkload {
   }
 
   void send_message() {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     ConnectionRef conn = _get_random_connection();
     boost::uniform_int<> true_false(0, 99);
     int val = true_false(rng);
@@ -1092,7 +1092,7 @@ class SyntheticWorkload {
   }
 
   void drop_connection() {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     if (available_connections.size() < 10)
       return;
     ConnectionRef conn = _get_random_connection();
@@ -1111,7 +1111,7 @@ class SyntheticWorkload {
   }
 
   void print_internal_state(bool detail=false) {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     lderr(g_ceph_context) << "available_connections: " << available_connections.size()
          << " inflight messages: " << dispatcher.get_pending() << dendl;
     if (detail && !available_connections.empty()) {
@@ -1151,7 +1151,7 @@ class SyntheticWorkload {
   }
 
   void handle_reset(Connection *con) {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     available_connections.erase(con);
     dispatcher.clear_pending(con);
   }
@@ -1366,7 +1366,7 @@ TEST_P(MessengerTest, SyntheticInjectTest4) {
 
 
 class MarkdownDispatcher : public Dispatcher {
-  Mutex lock;
+  BasicMutex lock;
   set<ConnectionRef> conns;
   bool last_mark;
  public:
@@ -1385,16 +1385,16 @@ class MarkdownDispatcher : public Dispatcher {
 
   void ms_handle_fast_connect(Connection *con) override {
     lderr(g_ceph_context) << __func__ << " " << con << dendl;
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     conns.insert(con);
   }
   void ms_handle_fast_accept(Connection *con) override {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     conns.insert(con);
   }
   bool ms_dispatch(Message *m) override {
     lderr(g_ceph_context) << __func__ << " conn: " << m->get_connection() << dendl;
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     count++;
     conns.insert(m->get_connection());
     if (conns.size() < 2 && !last_mark) {
@@ -1418,13 +1418,13 @@ class MarkdownDispatcher : public Dispatcher {
   }
   bool ms_handle_reset(Connection *con) override {
     lderr(g_ceph_context) << __func__ << " " << con << dendl;
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     conns.erase(con);
     usleep(rand() % 500);
     return true;
   }
   void ms_handle_remote_reset(Connection *con) override {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     conns.erase(con);
     lderr(g_ceph_context) << __func__ << " " << con << dendl;
   }

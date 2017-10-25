@@ -306,8 +306,8 @@ int KvStoreBench::test_random_insertions() {
 
 void KvStoreBench::aio_callback_timed(int * err, void *arg) {
   timed_args *args = reinterpret_cast<timed_args *>(arg);
-  Mutex * ops_in_flight_lock = &args->kvsb->ops_in_flight_lock;
-  Mutex * data_lock = &args->kvsb->data_lock;
+  BasicMutex * ops_in_flight_lock = &args->kvsb->ops_in_flight_lock;
+  BasicMutex * data_lock = &args->kvsb->data_lock;
   Cond * op_avail = &args->kvsb->op_avail;
   int *ops_in_flight = &args->kvsb->ops_in_flight;
   if (*err < 0 && *err != -61) {
@@ -357,7 +357,7 @@ int KvStoreBench::test_teuthology_aio(next_gen_t distr,
 
   cout << "done waiting. Starting random operations..." << std::endl;
 
-  Mutex::Locker l(ops_in_flight_lock);
+  BasicMutex::Locker l(ops_in_flight_lock);
   for (int i = 0; i < ops; i++) {
     assert(ops_in_flight <= max_ops_in_flight);
     if (ops_in_flight == max_ops_in_flight) {

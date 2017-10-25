@@ -140,12 +140,12 @@ public:
 
   void check_peers() {
     m_cluster_watcher->refresh_pools();
-    Mutex::Locker l(m_lock);
+    BasicMutex::Locker l(m_lock);
     ASSERT_EQ(m_pool_peers, m_cluster_watcher->get_pool_peers());
   }
 
   RadosRef m_cluster;
-  Mutex m_lock;
+  BasicMutex m_lock;
   unique_ptr<rbd::mirror::ServiceDaemon<>> m_service_daemon;
   unique_ptr<ClusterWatcher> m_cluster_watcher;
 

@@ -28,7 +28,7 @@
 
 class SharedLRUTest : public SharedLRU<unsigned int, int> {
 public:
-  Mutex &get_lock() { return lock; }
+  BasicMutex &get_lock() { return lock; }
   Cond &get_cond() { return cond; }
   map<unsigned int, pair< ceph::weak_ptr<int>, int* > > &get_weak_refs() {
     return weak_refs;
@@ -82,7 +82,7 @@ public:
       if (delay > 0)
         usleep(delay);
       {
-        Mutex::Locker l(cache.get_lock());
+        BasicMutex::Locker l(cache.get_lock());
         if (cache.waiting == waitting) {
           break;
         }
@@ -179,7 +179,7 @@ TEST_F(SharedLRU_all, wait_lookup) {
   // waiting on a key does not block lookups on other keys
   EXPECT_FALSE(cache.lookup(key + 12345));
   {
-    Mutex::Locker l(cache.get_lock());
+    BasicMutex::Locker l(cache.get_lock());
     cache.get_weak_refs().erase(key);
     cache.get_cond().Signal();
   }
@@ -205,7 +205,7 @@ TEST_F(SharedLRU_all, wait_lookup_or_create) {
   // waiting on a key does not block lookups on other keys
   EXPECT_TRUE(cache.lookup_or_create(key + 12345).get());
   {
-    Mutex::Locker l(cache.get_lock());
+    BasicMutex::Locker l(cache.get_lock());
     cache.get_weak_refs().erase(key);
     cache.get_cond().Signal();
   }
@@ -250,7 +250,7 @@ TEST_F(SharedLRU_all, wait_lower_bound) {
   // waiting on a key does not block getting lower_bound on other keys
   EXPECT_TRUE(cache.lower_bound(other_key).get());
   {
-    Mutex::Locker l(cache.get_lock());
+    BasicMutex::Locker l(cache.get_lock());
     cache.get_weak_refs().erase(key);
     cache.get_cond().Signal();
   }

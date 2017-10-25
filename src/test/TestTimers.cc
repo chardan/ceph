@@ -20,7 +20,7 @@ namespace
   int array_idx;
   TestContext* test_contexts[MAX_TEST_CONTEXTS];
 
-  Mutex array_lock("test_timers_mutex");
+  BasicMutex array_lock("test_timers_mutex");
 }
 
 class TestContext : public Context
@@ -76,7 +76,7 @@ static void print_status(const char *str, int ret)
 }
 
 template <typename T>
-static int basic_timer_test(T &timer, Mutex *lock)
+static int basic_timer_test(T &timer, BasicMutex *lock)
 {
   int ret = 0;
   memset(&test_array, 0, sizeof(test_array));
@@ -119,7 +119,7 @@ static int basic_timer_test(T &timer, Mutex *lock)
   return ret;
 }
 
-static int test_out_of_order_insertion(SafeTimer &timer, Mutex *lock)
+static int test_out_of_order_insertion(SafeTimer &timer, BasicMutex *lock)
 {
   int ret = 0;
   memset(&test_array, 0, sizeof(test_array));
@@ -166,7 +166,7 @@ static int test_out_of_order_insertion(SafeTimer &timer, Mutex *lock)
   return ret;
 }
 
-static int safe_timer_cancel_all_test(SafeTimer &safe_timer, Mutex& safe_timer_lock)
+static int safe_timer_cancel_all_test(SafeTimer &safe_timer, BasicMutex& safe_timer_lock)
 {
   cout << __PRETTY_FUNCTION__ << std::endl;
 
@@ -204,7 +204,7 @@ static int safe_timer_cancel_all_test(SafeTimer &safe_timer, Mutex& safe_timer_l
   return ret;
 }
 
-static int safe_timer_cancellation_test(SafeTimer &safe_timer, Mutex& safe_timer_lock)
+static int safe_timer_cancellation_test(SafeTimer &safe_timer, BasicMutex& safe_timer_lock)
 {
   cout << __PRETTY_FUNCTION__ << std::endl;
 
@@ -260,7 +260,7 @@ int main(int argc, const char **argv)
   common_init_finish(g_ceph_context);
 
   int ret;
-  Mutex safe_timer_lock("safe_timer_lock");
+  BasicMutex safe_timer_lock("safe_timer_lock");
   SafeTimer safe_timer(g_ceph_context, safe_timer_lock);
 
   ret = basic_timer_test <SafeTimer>(safe_timer, &safe_timer_lock);

@@ -89,13 +89,13 @@ public:
   };
 private:
 
-  Mutex lock;
+  BasicMutex lock;
   map<string, bufferlist> store;
 
   class Doer : public Thread {
     static const size_t MAX_SIZE = 100;
     PausyAsyncMap *parent;
-    Mutex lock;
+    BasicMutex lock;
     Cond cond;
     int stopping;
     bool paused;
@@ -107,7 +107,7 @@ private:
       while (1) {
 	list<Op> ops;
 	{
-	  Mutex::Locker l(lock);
+	  BasicMutex::Locker l(lock);
 	  while (!stopping && (queue.empty() || paused))
 	    cond.Wait(lock);
 	  if (stopping && queue.empty()) {
@@ -127,26 +127,26 @@ private:
 	     ops.erase(i++)) {
 	  if (!(rand()%3))
 	    usleep(1+(rand() % 5000));
-	  Mutex::Locker l(parent->lock);
+	  BasicMutex::Locker l(parent->lock);
 	  (*i)->operate(&(parent->store));
 	}
       }
     }
 
     void pause() {
-      Mutex::Locker l(lock);
+      BasicMutex::Locker l(lock);
       paused = true;
       cond.Signal();
     }
 
     void resume() {
-      Mutex::Locker l(lock);
+      BasicMutex::Locker l(lock);
       paused = false;
       cond.Signal();
     }
 
     void submit(list<Op> &in) {
-      Mutex::Locker l(lock);
+      BasicMutex::Locker l(lock);
       while (queue.size() >= MAX_SIZE)
 	cond.Wait(lock);
       queue.splice(queue.end(), in, in.begin(), in.end());
@@ -154,7 +154,7 @@ private:
     }
 
     void stop() {
-      Mutex::Locker l(lock);
+      BasicMutex::Locker l(lock);
       stopping = 1;
       cond.Signal();
       while (stopping != 2)
@@ -173,7 +173,7 @@ public:
   int get_keys(
     const set<string> &keys,
     map<string, bufferlist> *out) override {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     for (set<string>::const_iterator i = keys.begin();
 	 i != keys.end();
 	 ++i) {
@@ -186,7 +186,7 @@ public:
   int get_next(
     const string &key,
     pair<string, bufferlist> *next) override {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     map<string, bufferlist>::iterator j = store.upper_bound(key);
     if (j != store.end()) {
       if (next)
@@ -202,19 +202,19 @@ public:
   }
 
   void flush() {
-    Mutex lock("flush lock");
+    BasicMutex lock("flush lock");
     Cond cond;
     bool done = false;
 
     class OnFinish : public Context {
-      Mutex *lock;
+      BasicMutex *lock;
       Cond *cond;
       bool *done;
     public:
-      OnFinish(Mutex *lock, Cond *cond, bool *done)
+      OnFinish(BasicMutex *lock, Cond *cond, bool *done)
 	: lock(lock), cond(cond), done(done) {}
       void finish(int) override {
-	Mutex::Locker l(*lock);
+	BasicMutex::Locker l(*lock);
 	*done = true;
 	cond->Signal();
       }
@@ -223,7 +223,7 @@ public:
     t.add_callback(new OnFinish(&lock, &cond, &done));
     submit(&t);
     {
-      Mutex::Locker l(lock);
+      BasicMutex::Locker l(lock);
       while (!done)
 	cond.Wait(lock);
     }
@@ -443,7 +443,7 @@ class MapperVerifier {
   snapid_t next;
   uint32_t mask;
   uint32_t bits;
-  Mutex lock;
+  BasicMutex lock;
 public:
 
   MapperVerifier(
@@ -478,7 +478,7 @@ public:
   }
 
   void create_object() {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     if (snap_to_hobject.empty())
       return;
     hobject_t obj;
@@ -503,7 +503,7 @@ public:
   }
 
   void trim_snap() {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     if (snap_to_hobject.empty())
       return;
     map<snapid_t, set<hobject_t> >::iterator snap =
@@ -545,7 +545,7 @@ public:
   }
 
   void remove_oid() {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     if (hobject_to_snap.empty())
       return;
     map<hobject_t, set<snapid_t>>::iterator obj =
@@ -569,7 +569,7 @@ public:
   }
 
   void check_oid() {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     if (hobject_to_snap.empty())
       return;
     map<hobject_t, set<snapid_t>>::iterator obj =

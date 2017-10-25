@@ -63,7 +63,7 @@ struct ImageSync<librbd::MockTestImageCtx> {
   static ImageSync* create(
       librbd::MockTestImageCtx *local_image_ctx,
       librbd::MockTestImageCtx *remote_image_ctx,
-      SafeTimer *timer, Mutex *timer_lock,
+      SafeTimer *timer, BasicMutex *timer_lock,
       const std::string &mirror_uuid, ::journal::MockJournaler *journaler,
       librbd::journal::MirrorPeerClientMeta *client_meta, ContextWQ *work_queue,
       InstanceWatcher<librbd::MockTestImageCtx> *instance_watcher,

@@ -92,7 +92,7 @@ private:
   typedef std::map<std::string, Pool*>		Pools;
   typedef std::set<uint32_t> Blacklist;
 
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
 
   Pools	m_pools;
   int64_t m_pool_id = 0;

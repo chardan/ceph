@@ -41,15 +41,16 @@ static void disable_lockdep() {
   }
 }
 
-TEST(Mutex, NormalAsserts) {
-  Mutex* m = new Mutex("Normal",false);
+TEST(BasicMutex, NormalAsserts) {
+  Mutex* m = new BasicMutex("Normal");
   m->Lock();
   EXPECT_THROW(m->Lock(), int);
+  m->Unlock(); // JFW
 }
 
-TEST(Mutex, RecursiveWithLockdep) {
+TEST(BasicMutex, RecursiveWithLockdep) {
   do_init();
-  Mutex* m = new Mutex("Recursive1",true);
+  Mutex* m = new RecursiveMutex("Recursive1");
   m->Lock();
   m->Lock();
   m->Unlock();
@@ -57,9 +58,9 @@ TEST(Mutex, RecursiveWithLockdep) {
   delete m;
 }
 
-TEST(Mutex, RecursiveWithoutLockdep) {
+TEST(BasicMutex, RecursiveWithoutLockdep) {
   disable_lockdep();
-  Mutex* m = new Mutex("Recursive2",true);
+  Mutex* m = new RecursiveMutex("Recursive2");
   m->Lock();
   m->Lock();
   m->Unlock();
@@ -67,8 +68,8 @@ TEST(Mutex, RecursiveWithoutLockdep) {
   delete m;
 }
 
-TEST(Mutex, DeleteLocked) {
-  Mutex* m = new Mutex("Recursive3",false);
+TEST(BasicMutex, DeleteLocked) {
+  Mutex* m = new BasicMutex("Recursive3"); // JFW: not sure why this is called recursive...
   m->Lock();
   PrCtl unset_dumpable;
   EXPECT_DEATH(delete m,".*");

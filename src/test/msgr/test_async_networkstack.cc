@@ -946,8 +946,8 @@ class StressFactory {
   }
 
   void add_client(ThreadData *t_data) {
-    static Mutex lock("add_client_lock");
-    Mutex::Locker l(lock);
+    static BasicMutex lock("add_client_lock");
+    BasicMutex::Locker l(lock);
     ConnectedSocket sock;
     int r = t_data->worker->connect(bind_addr, options, &sock);
     std::default_random_engine rng(rd());

@@ -83,7 +83,7 @@ DetailedStatCollector::DetailedStatCollector(
 
 uint64_t DetailedStatCollector::next_seq()
 {
-  Mutex::Locker l(lock);
+  BasicMutex::Locker l(lock);
   if (summary_out && ((cur_time() - last_dump) > bin_size)) {
     f->open_object_section("stats");
     for (map<string, Aggregator>::iterator i = aggregators.begin();
@@ -107,7 +107,7 @@ uint64_t DetailedStatCollector::next_seq()
 
 void DetailedStatCollector::start_write(uint64_t seq, uint64_t length)
 {
-  Mutex::Locker l(lock);
+  BasicMutex::Locker l(lock);
   utime_t now(cur_time());
   not_committed.insert(make_pair(seq, make_pair(length, now)));
   not_applied.insert(make_pair(seq, make_pair(length, now)));
@@ -115,14 +115,14 @@ void DetailedStatCollector::start_write(uint64_t seq, uint64_t length)
 
 void DetailedStatCollector::start_read(uint64_t seq, uint64_t length)
 {
-  Mutex::Locker l(lock);
+  BasicMutex::Locker l(lock);
   utime_t now(cur_time());
   not_read.insert(make_pair(seq, make_pair(length, now)));
 }
 
 void DetailedStatCollector::write_applied(uint64_t seq)
 {
-  Mutex::Locker l(lock);
+  BasicMutex::Locker l(lock);
   Op op(
     "write_applied",
     not_applied[seq].second,
@@ -136,7 +136,7 @@ void DetailedStatCollector::write_applied(uint64_t seq)
 
 void DetailedStatCollector::write_committed(uint64_t seq)
 {
-  Mutex::Locker l(lock);
+  BasicMutex::Locker l(lock);
   Op op(
     "write_committed",
     not_committed[seq].second,
@@ -150,7 +150,7 @@ void DetailedStatCollector::write_committed(uint64_t seq)
 
 void DetailedStatCollector::read_complete(uint64_t seq)
 {
-  Mutex::Locker l(lock);
+  BasicMutex::Locker l(lock);
   Op op(
     "read",
     not_read[seq].second,

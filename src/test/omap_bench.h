@@ -88,8 +88,8 @@ protected:
 
   //aio things
   Cond thread_is_free;
-  Mutex thread_is_free_lock;
-  Mutex  data_lock;
+  BasicMutex thread_is_free_lock;
+  BasicMutex  data_lock;
   int busythreads_count;
   librados::callback_t comp;
   librados::callback_t safe;

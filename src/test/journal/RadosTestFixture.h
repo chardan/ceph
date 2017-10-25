@@ -39,7 +39,7 @@ public:
 
   struct Listener : public journal::JournalMetadataListener {
     RadosTestFixture *test_fixture;
-    Mutex mutex;
+    BasicMutex mutex;
     Cond cond;
     std::map<journal::JournalMetadata*, uint32_t> updates;
 
@@ -47,7 +47,7 @@ public:
       : test_fixture(_test_fixture), mutex("mutex") {}
 
     void handle_update(journal::JournalMetadata *metadata) override {
-      Mutex::Locker locker(mutex);
+      BasicMutex::Locker locker(mutex);
       ++updates[metadata];
       cond.Signal();
     }
@@ -66,7 +66,7 @@ public:
 
   ContextWQ *m_work_queue;
 
-  Mutex m_timer_lock;
+  BasicMutex m_timer_lock;
   SafeTimer *m_timer;
 
   Listener m_listener;

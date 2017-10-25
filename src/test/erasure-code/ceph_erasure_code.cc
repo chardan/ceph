@@ -127,7 +127,7 @@ int ErasureCodeCommand::run() {
 int ErasureCodeCommand::plugin_exists() {
   ErasureCodePluginRegistry &instance = ErasureCodePluginRegistry::instance();
   ErasureCodePlugin *plugin = 0;
-  Mutex::Locker l(instance.lock);
+  BasicMutex::Locker l(instance.lock);
   stringstream ss;
   int code = instance.load(vm["plugin_exists"].as<string>(),
 			   g_conf->get_val<std::string>("erasure_code_dir"), &plugin, &ss);

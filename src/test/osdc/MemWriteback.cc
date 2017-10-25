@@ -24,14 +24,14 @@ class C_DelayRead : public Context {
   CephContext *m_cct;
   Context *m_con;
   ceph::timespan m_delay;
-  Mutex *m_lock;
+  BasicMutex *m_lock;
   object_t m_oid;
   uint64_t m_off;
   uint64_t m_len;
   bufferlist *m_bl;
 
 public:
-  C_DelayRead(MemWriteback *mwb, CephContext *cct, Context *c, Mutex *lock,
+  C_DelayRead(MemWriteback *mwb, CephContext *cct, Context *c, BasicMutex *lock,
 	      const object_t& oid, uint64_t off, uint64_t len, bufferlist *pbl,
 	      uint64_t delay_ns=0)
     : wb(mwb), m_cct(cct), m_con(c),
@@ -52,14 +52,14 @@ class C_DelayWrite : public Context {
   CephContext *m_cct;
   Context *m_con;
   ceph::timespan m_delay;
-  Mutex *m_lock;
+  BasicMutex *m_lock;
   object_t m_oid;
   uint64_t m_off;
   uint64_t m_len;
   const bufferlist& m_bl;
 
 public:
-  C_DelayWrite(MemWriteback *mwb, CephContext *cct, Context *c, Mutex *lock,
+  C_DelayWrite(MemWriteback *mwb, CephContext *cct, Context *c, BasicMutex *lock,
 	       const object_t& oid, uint64_t off, uint64_t len,
 	       const bufferlist& bl, uint64_t delay_ns=0)
     : wb(mwb), m_cct(cct), m_con(c),
@@ -75,7 +75,7 @@ public:
   }
 };
 
-MemWriteback::MemWriteback(CephContext *cct, Mutex *lock, uint64_t delay_ns)
+MemWriteback::MemWriteback(CephContext *cct, BasicMutex *lock, uint64_t delay_ns)
   : m_cct(cct), m_lock(lock), m_delay_ns(delay_ns)
 {
   m_finisher = new Finisher(cct);

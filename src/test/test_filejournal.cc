@@ -29,7 +29,7 @@ struct test_info {
 
 // ----
 Cond cond;
-Mutex wait_lock("lock");
+BasicMutex wait_lock("lock");
 bool done;
 
 void wait()
@@ -44,7 +44,7 @@ void wait()
 class C_Sync {
 public:
   Cond cond;
-  Mutex lock;
+  BasicMutex lock;
   bool done;
   C_SafeCond *c;
 

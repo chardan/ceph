@@ -199,13 +199,13 @@ TEST(AdminSocket, RegisterCommandPrefixes) {
 
 class BlockingHook : public AdminSocketHook {
 public:
-  Mutex _lock;
+  BasicMutex _lock;
   Cond _cond;
 
   BlockingHook() : _lock("BlockingHook::_lock") {}
 
   bool call(std::string command, cmdmap_t& cmdmap, std::string format, bufferlist& result) override {
-    Mutex::Locker l(_lock);
+    BasicMutex::Locker l(_lock);
     _cond.Wait(_lock);
     return true;
   }
@@ -257,7 +257,7 @@ TEST(AdminSocketClient, Ping) {
     EXPECT_NE(std::string::npos, result.find("Resource temporarily unavailable"));
     ASSERT_FALSE(ok);
     {
-      Mutex::Locker l(blocking->_lock);
+      BasicMutex::Locker l(blocking->_lock);
       blocking->_cond.Signal();
     }
     ASSERT_TRUE(asoct.shutdown());

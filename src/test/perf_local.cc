@@ -159,7 +159,7 @@ double atomic_int_set()
 double mutex_nonblock()
 {
   int count = 1000000;
-  Mutex m("mutex_nonblock::m");
+  BasicMutex m("mutex_nonblock::m");
   uint64_t start = Cycles::rdtsc();
   for (int i = 0; i < count; i++) {
     m.Lock();
@@ -321,7 +321,7 @@ double buffer_iterator()
 
 // Implements the CondPingPong test.
 class CondPingPong {
-  Mutex mutex;
+  BasicMutex mutex;
   Cond cond;
   int prod;
   int cons;
@@ -350,7 +350,7 @@ class CondPingPong {
   }
 
   void produce() {
-    Mutex::Locker l(mutex);
+    BasicMutex::Locker l(mutex);
     while (cons < count) {
       while (cons < prod)
         cond.Wait(mutex);
@@ -360,7 +360,7 @@ class CondPingPong {
   }
 
   void consume() {
-    Mutex::Locker l(mutex);
+    BasicMutex::Locker l(mutex);
     while (cons < count) {
       while (cons == prod)
         cond.Wait(mutex);
@@ -776,14 +776,14 @@ class FakeContext : public Context {
 double perf_timer()
 {
   int count = 1000000;
-  Mutex lock("perf_timer::lock");
+  BasicMutex lock("perf_timer::lock");
   SafeTimer timer(g_ceph_context, lock);
   FakeContext **c = new FakeContext*[count];
   for (int i = 0; i < count; i++) {
     c[i] = new FakeContext();
   }
   uint64_t start = Cycles::rdtsc();
-  Mutex::Locker l(lock);
+  BasicMutex::Locker l(lock);
   for (int i = 0; i < count; i++) {
     if (timer.add_event_after(12345, c[i])) {
       timer.cancel_event(c[i]);
@@ -920,7 +920,7 @@ TestInfo tests[] = {
   {"atomic_int_set", atomic_int_set,
     "atomic_t::set"},
   {"mutex_nonblock", mutex_nonblock,
-    "Mutex lock/unlock (no blocking)"},
+    "BasicMutex lock/unlock (no blocking)"},
   {"buffer_basic", buffer_basic,
     "buffer create, add one ptr, delete"},
   {"buffer_encode_decode", buffer_encode_decode,

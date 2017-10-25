@@ -297,11 +297,11 @@ class Worker : public Thread {
 
 class CountEvent: public EventCallback {
   std::atomic<unsigned> *count;
-  Mutex *lock;
+  BasicMutex *lock;
   Cond *cond;
 
  public:
-  CountEvent(std::atomic<unsigned> *atomic, Mutex *l, Cond *c): count(atomic), lock(l), cond(c) {}
+  CountEvent(std::atomic<unsigned> *atomic, BasicMutex *l, Cond *c): count(atomic), lock(l), cond(c) {}
   void do_request(uint64_t id) override {
     lock->Lock();
     (*count)--;
@@ -313,7 +313,7 @@ class CountEvent: public EventCallback {
 TEST(EventCenterTest, DispatchTest) {
   Worker worker1(g_ceph_context, 1), worker2(g_ceph_context, 2);
   std::atomic<unsigned> count = { 0 };
-  Mutex lock("DispatchTest::lock");
+  BasicMutex lock("DispatchTest::lock");
   Cond cond;
   worker1.create("worker_1");
   worker2.create("worker_2");
@@ -322,7 +322,7 @@ TEST(EventCenterTest, DispatchTest) {
     worker1.center.dispatch_event_external(EventCallbackRef(new CountEvent(&count, &lock, &cond)));
     count++;
     worker2.center.dispatch_event_external(EventCallbackRef(new CountEvent(&count, &lock, &cond)));
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     while (count)
       cond.Wait(lock);
   }

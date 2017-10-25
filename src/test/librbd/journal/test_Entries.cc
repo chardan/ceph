@@ -23,7 +23,7 @@ public:
   typedef std::list<journal::Journaler *> Journalers;
 
   struct ReplayHandler : public journal::ReplayHandler {
-    Mutex lock;
+    BasicMutex lock;
     Cond cond;
     bool entries_available;
     bool complete;
@@ -38,13 +38,13 @@ public:
     }
 
     void handle_entries_available() override  {
-      Mutex::Locker locker(lock);
+      BasicMutex::Locker locker(lock);
       entries_available = true;
       cond.Signal();
     }
 
     void handle_complete(int r) override {
-      Mutex::Locker locker(lock);
+      BasicMutex::Locker locker(lock);
       complete = true;
       cond.Signal();
     }
@@ -91,7 +91,7 @@ public:
   }
 
   bool wait_for_entries_available(librbd::ImageCtx *ictx) {
-    Mutex::Locker locker(m_replay_handler.lock);
+    BasicMutex::Locker locker(m_replay_handler.lock);
     while (!m_replay_handler.entries_available) {
       if (m_replay_handler.cond.WaitInterval(m_replay_handler.lock,
 					     utime_t(10, 0)) != 0) {

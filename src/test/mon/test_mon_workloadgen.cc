@@ -82,7 +82,7 @@ class TestStub : public Dispatcher
   MessengerRef messenger;
   MonClient monc;
 
-  Mutex lock;
+  BasicMutex lock;
   Cond cond;
   SafeTimer timer;
 
@@ -150,7 +150,7 @@ class TestStub : public Dispatcher
   virtual int init() = 0;
 
   virtual int shutdown() {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     do_shutdown = true;
     int r = _shutdown();
     if (r < 0) {
@@ -189,7 +189,7 @@ class ClientStub : public TestStub
 
  protected:
   bool ms_dispatch(Message *m) override {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     dout(1) << "client::" << __func__ << " " << *m << dendl;
     switch (m->get_type()) {
     case CEPH_MSG_OSD_MAP:
@@ -202,19 +202,19 @@ class ClientStub : public TestStub
 
   void ms_handle_connect(Connection *con) override {
     dout(1) << "client::" << __func__ << " " << con << dendl;
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     objecter->ms_handle_connect(con);
   }
 
   void ms_handle_remote_reset(Connection *con) override {
     dout(1) << "client::" << __func__ << " " << con << dendl;
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     objecter->ms_handle_remote_reset(con);
   }
 
   bool ms_handle_reset(Connection *con) override {
     dout(1) << "client::" << __func__ << dendl;
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     objecter->ms_handle_reset(con);
     return false;
   }
@@ -394,7 +394,7 @@ class OSDStub : public TestStub
 
   int init() override {
     dout(10) << __func__ << dendl;
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
 
     dout(1) << __func__ << " fsid " << monc.monmap.fsid
 	    << " osd_fsid " << g_conf->osd_uuid << dendl;
@@ -922,7 +922,7 @@ double const OSDStub::STUB_BOOT_INTERVAL = 10.0;
 
 const char *our_name = NULL;
 vector<TestStub*> stubs;
-Mutex shutdown_lock("main::shutdown_lock");
+BasicMutex shutdown_lock("main::shutdown_lock");
 Cond shutdown_cond;
 Context *shutdown_cb = NULL;
 SafeTimer *shutdown_timer = NULL;
@@ -941,7 +941,7 @@ void handle_test_signal(int signum)
     return;
 
   std::cerr << "*** Got signal " << sig_str(signum) << " ***" << std::endl;
-  Mutex::Locker l(shutdown_lock);
+  BasicMutex::Locker l(shutdown_lock);
   if (shutdown_timer) {
     shutdown_timer->cancel_all_events();
     shutdown_cond.Signal();

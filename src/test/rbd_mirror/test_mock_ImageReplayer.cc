@@ -68,7 +68,7 @@ namespace mirror {
 template <>
 struct Threads<librbd::MockTestImageCtx> {
   MockSafeTimer *timer;
-  Mutex &timer_lock;
+  BasicMutex &timer_lock;
 
   MockContextWQ *work_queue;
 
@@ -187,7 +187,7 @@ struct BootstrapRequest<librbd::MockTestImageCtx> {
       librbd::MockTestImageCtx **local_image_ctx,
       const std::string &local_image_name, const std::string &remote_image_id,
       const std::string &global_image_id, MockContextWQ *work_queue,
-      MockSafeTimer *timer, Mutex *timer_lock,
+      MockSafeTimer *timer, BasicMutex *timer_lock,
       const std::string &local_mirror_uuid,
       const std::string &remote_mirror_uuid,
       ::journal::MockJournalerProxy *journaler,

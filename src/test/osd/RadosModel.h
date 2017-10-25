@@ -75,26 +75,26 @@ public:
   Cond cond;
   uint64_t handle;
   bool waiting;
-  Mutex lock;
+  BasicMutex lock;
   TestWatchContext() : handle(0), waiting(false),
 		       lock("watch lock") {}
   void handle_notify(uint64_t notify_id, uint64_t cookie,
 		     uint64_t notifier_id,
 		     bufferlist &bl) override {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     waiting = false;
     cond.SignalAll();
   }
   void handle_error(uint64_t cookie, int err) override {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     cout << "watch handle_error " << err << std::endl;
   }
   void start() {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     waiting = true;
   }
   void wait() {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     while (waiting)
       cond.Wait(lock);
   }
@@ -161,7 +161,7 @@ public:
 
 class RadosTestContext {
 public:
-  Mutex state_lock;
+  BasicMutex state_lock;
   Cond wait_cond;
   map<int, map<string,ObjectDesc> > pool_obj_cont;
   set<string> oid_in_use;
@@ -551,7 +551,7 @@ public:
     ContDesc cont;
     set<string> to_remove;
     {
-      Mutex::Locker l(context->state_lock);
+      BasicMutex::Locker l(context->state_lock);
       ObjectDesc obj;
       if (!context->find_object(oid, &obj)) {
 	context->kick();
@@ -608,7 +608,7 @@ public:
 
   void _finish(CallbackInfo *info) override
   {
-    Mutex::Locker l(context->state_lock);
+    BasicMutex::Locker l(context->state_lock);
     done = true;
     context->update_object_version(oid, comp->get_version64());
     context->oid_in_use.erase(oid);
@@ -644,7 +644,7 @@ public:
   {
     ContDesc cont;
     {
-      Mutex::Locker l(context->state_lock);
+      BasicMutex::Locker l(context->state_lock);
       cont = ContDesc(context->seq_num, context->current_snap,
 		      context->seq_num, "");
       context->oid_in_use.insert(oid);
@@ -683,7 +683,7 @@ public:
     }
 
     {
-      Mutex::Locker l(context->state_lock);
+      BasicMutex::Locker l(context->state_lock);
       context->update_object_header(oid, header);
       context->update_object_attrs(oid, omap);
     }
@@ -698,7 +698,7 @@ public:
 
   void _finish(CallbackInfo *info) override
   {
-    Mutex::Locker l(context->state_lock);
+    BasicMutex::Locker l(context->state_lock);
     int r;
     if ((r = comp->get_return_value())) {
       cerr << "err " << r << std::endl;
@@ -1336,7 +1336,7 @@ public:
 
   void _finish(CallbackInfo *info) override
   {
-    Mutex::Locker l(context->state_lock);
+    BasicMutex::Locker l(context->state_lock);
     assert(!done);
     assert(waiting_on > 0);
     if (--waiting_on) {
@@ -1657,7 +1657,7 @@ public:
     int r;
     if (!ctx) {
       {
-	Mutex::Locker l(context->state_lock);
+	BasicMutex::Locker l(context->state_lock);
 	ctx = context->watch(oid);
       }
 
@@ -1667,7 +1667,7 @@ public:
     } else {
       r = context->io_ctx.unwatch2(ctx->get_handle());
       {
-	Mutex::Locker l(context->state_lock);
+	BasicMutex::Locker l(context->state_lock);
 	context->unwatch(oid);
       }
     }
@@ -1678,7 +1678,7 @@ public:
     }
 
     {
-      Mutex::Locker l(context->state_lock);
+      BasicMutex::Locker l(context->state_lock);
       context->oid_in_use.erase(oid);
       context->oid_not_in_use.insert(oid);
     }
@@ -1793,7 +1793,7 @@ public:
 
   void _finish(CallbackInfo *info) override
   {
-    Mutex::Locker l(context->state_lock);
+    BasicMutex::Locker l(context->state_lock);
     uint64_t tid = info->id;
     cout << num << ":  finishing rollback tid " << tid
 	 << " to " << context->prefix + oid << std::endl;
@@ -1854,7 +1854,7 @@ public:
   {
     ContDesc cont;
     {
-      Mutex::Locker l(context->state_lock);
+      BasicMutex::Locker l(context->state_lock);
       cont = ContDesc(context->seq_num, context->current_snap,
 		      context->seq_num, "");
       context->oid_in_use.insert(oid);
@@ -1898,7 +1898,7 @@ public:
 
   void _finish(CallbackInfo *info) override
   {
-    Mutex::Locker l(context->state_lock);
+    BasicMutex::Locker l(context->state_lock);
 
     // note that the read can (and atm will) come back before the
     // write reply, but will reflect the update and the versions will
@@ -1980,7 +1980,7 @@ public:
 
   void _begin() override
   {
-    Mutex::Locker l(context->state_lock);
+    BasicMutex::Locker l(context->state_lock);
     context->oid_in_use.insert(oid);
     context->oid_not_in_use.erase(oid);
     context->oid_redirect_in_use.insert(oid_tgt);
@@ -2072,7 +2072,7 @@ public:
 
   void _finish(CallbackInfo *info) override
   {
-    Mutex::Locker l(context->state_lock);
+    BasicMutex::Locker l(context->state_lock);
 
     if (info->id == 0) {
       assert(comp->is_complete());
@@ -2201,7 +2201,7 @@ public:
   }
 
   void _finish(CallbackInfo *info) override {
-    Mutex::Locker l(context->state_lock);
+    BasicMutex::Locker l(context->state_lock);
     if (!comp2) {
       if (ls.empty()) {
 	cerr << num << ": no hitsets" << std::endl;

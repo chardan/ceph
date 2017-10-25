@@ -2193,7 +2193,7 @@ TEST_F(LibRadosTwoPoolsPP, FlushTryFlushRaces) {
 
 
 IoCtx *read_ioctx = 0;
-Mutex test_lock("FlushReadRaces::lock");
+BasicMutex test_lock("FlushReadRaces::lock");
 Cond cond;
 int max_reads = 100;
 int num_reads = 0; // in progress

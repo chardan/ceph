@@ -165,7 +165,7 @@ public:
   static OpenRequest *s_instance;
   static OpenRequest *create(MockJournalImageCtx *image_ctx,
                              ::journal::MockJournalerProxy *journaler,
-                             Mutex *lock, journal::ImageClientMeta *client_meta,
+                             BasicMutex *lock, journal::ImageClientMeta *client_meta,
                              uint64_t *tag_tid, journal::TagData *tag_data,
                              Context *on_finish) {
     assert(s_instance != nullptr);
@@ -238,7 +238,7 @@ public:
     assert(m_commit_contexts.empty());
   }
 
-  Mutex m_lock;
+  BasicMutex m_lock;
   Cond m_cond;
   Contexts m_commit_contexts;
 
@@ -439,13 +439,13 @@ public:
   }
 
   void save_commit_context(Context *ctx) {
-    Mutex::Locker locker(m_lock);
+    BasicMutex::Locker locker(m_lock);
     m_commit_contexts.push_back(ctx);
     m_cond.Signal();
   }
 
   void wake_up() {
-    Mutex::Locker locker(m_lock);
+    BasicMutex::Locker locker(m_lock);
     m_cond.Signal();
   }
 
@@ -815,7 +815,7 @@ TEST_F(TestMockJournal, ReplayOnDiskPreFlushError) {
 
   // wait for the process callback
   {
-    Mutex::Locker locker(m_lock);
+    BasicMutex::Locker locker(m_lock);
     while (m_commit_contexts.empty()) {
       m_cond.Wait(m_lock);
     }
@@ -892,7 +892,7 @@ TEST_F(TestMockJournal, ReplayOnDiskPostFlushError) {
   // proceed with the flush
   {
     // wait for on_flush callback
-    Mutex::Locker locker(m_lock);
+    BasicMutex::Locker locker(m_lock);
     while (on_flush == nullptr) {
       m_cond.Wait(m_lock);
     }
@@ -900,7 +900,7 @@ TEST_F(TestMockJournal, ReplayOnDiskPostFlushError) {
 
   {
     // wait for the on_safe process callback
-    Mutex::Locker locker(m_lock);
+    BasicMutex::Locker locker(m_lock);
     while (m_commit_contexts.empty()) {
       m_cond.Wait(m_lock);
     }

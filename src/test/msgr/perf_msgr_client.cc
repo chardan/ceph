@@ -78,7 +78,7 @@ class MessengerClient {
     ClientDispatcher dispatcher;
 
    public:
-    Mutex lock;
+    BasicMutex lock;
     Cond cond;
     uint64_t inflight;
 
@@ -157,7 +157,7 @@ class MessengerClient {
 void MessengerClient::ClientDispatcher::ms_fast_dispatch(Message *m) {
   usleep(think_time);
   m->put();
-  Mutex::Locker l(thread->lock);
+  BasicMutex::Locker l(thread->lock);
   thread->inflight--;
   thread->cond.Signal();
 }

@@ -42,7 +42,7 @@ void rbd_bencher_completion(void *c, void *pc);
 
 struct rbd_bencher {
   librbd::Image *image;
-  Mutex lock;
+  BasicMutex lock;
   Cond cond;
   int in_flight;
 
@@ -55,7 +55,7 @@ struct rbd_bencher {
   bool start_write(int max, uint64_t off, uint64_t len, bufferlist& bl,
                    int op_flags) {
     {
-      Mutex::Locker l(lock);
+      BasicMutex::Locker l(lock);
       if (in_flight >= max)
         return false;
       in_flight++;
@@ -68,7 +68,7 @@ struct rbd_bencher {
   }
 
   void wait_for(int max) {
-    Mutex::Locker l(lock);
+    BasicMutex::Locker l(lock);
     while (in_flight > max) {
       utime_t dur;
       dur.set_from_double(.2);

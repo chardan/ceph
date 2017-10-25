@@ -61,7 +61,7 @@ private:
   boost::scoped_ptr<AdditionalPrinting> details;
   utime_t last_dump;
 
-  Mutex lock;
+  BasicMutex lock;
   Cond cond;
 
   map<string, Aggregator> aggregators;

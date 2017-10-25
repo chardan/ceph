@@ -38,7 +38,7 @@ TestRadosClient *TestMemCluster::create_rados_client(CephContext *cct) {
 }
 
 int TestMemCluster::pool_create(const std::string &pool_name) {
-  Mutex::Locker locker(m_lock);
+  BasicMutex::Locker locker(m_lock);
   if (m_pools.find(pool_name) != m_pools.end()) {
     return -EEXIST;
   }
@@ -49,7 +49,7 @@ int TestMemCluster::pool_create(const std::string &pool_name) {
 }
 
 int TestMemCluster::pool_delete(const std::string &pool_name) {
-  Mutex::Locker locker(m_lock);
+  BasicMutex::Locker locker(m_lock);
   Pools::iterator iter = m_pools.find(pool_name);
   if (iter == m_pools.end()) {
     return -ENOENT;
@@ -66,7 +66,7 @@ int TestMemCluster::pool_get_base_tier(int64_t pool_id, int64_t* base_tier) {
 }
 
 int TestMemCluster::pool_list(std::list<std::pair<int64_t, std::string> >& v) {
-  Mutex::Locker locker(m_lock);
+  BasicMutex::Locker locker(m_lock);
   v.clear();
   for (Pools::iterator iter = m_pools.begin(); iter != m_pools.end(); ++iter) {
     v.push_back(std::make_pair(iter->second->pool_id, iter->first));
@@ -75,7 +75,7 @@ int TestMemCluster::pool_list(std::list<std::pair<int64_t, std::string> >& v) {
 }
 
 int64_t TestMemCluster::pool_lookup(const std::string &pool_name) {
-  Mutex::Locker locker(m_lock);
+  BasicMutex::Locker locker(m_lock);
   Pools::iterator iter = m_pools.find(pool_name);
   if (iter == m_pools.end()) {
     return -ENOENT;
@@ -84,7 +84,7 @@ int64_t TestMemCluster::pool_lookup(const std::string &pool_name) {
 }
 
 int TestMemCluster::pool_reverse_lookup(int64_t id, std::string *name) {
-  Mutex::Locker locker(m_lock);
+  BasicMutex::Locker locker(m_lock);
   for (Pools::iterator iter = m_pools.begin(); iter != m_pools.end(); ++iter) {
     if (iter->second->pool_id == id) {
       *name = iter->first;
@@ -95,7 +95,7 @@ int TestMemCluster::pool_reverse_lookup(int64_t id, std::string *name) {
 }
 
 TestMemCluster::Pool *TestMemCluster::get_pool(int64_t pool_id) {
-  Mutex::Locker locker(m_lock);
+  BasicMutex::Locker locker(m_lock);
   for (auto &pool_pair : m_pools) {
     if (pool_pair.second->pool_id == pool_id) {
       return pool_pair.second;
@@ -105,7 +105,7 @@ TestMemCluster::Pool *TestMemCluster::get_pool(int64_t pool_id) {
 }
 
 TestMemCluster::Pool *TestMemCluster::get_pool(const std::string &pool_name) {
-  Mutex::Locker locker(m_lock);
+  BasicMutex::Locker locker(m_lock);
   Pools::iterator iter = m_pools.find(pool_name);
   if (iter != m_pools.end()) {
     return iter->second;
@@ -114,30 +114,30 @@ TestMemCluster::Pool *TestMemCluster::get_pool(const std::string &pool_name) {
 }
 
 void TestMemCluster::allocate_client(uint32_t *nonce, uint64_t *global_id) {
-  Mutex::Locker locker(m_lock);
+  BasicMutex::Locker locker(m_lock);
   *nonce = m_next_nonce++;
   *global_id = m_next_global_id++;
 }
 
 void TestMemCluster::deallocate_client(uint32_t nonce) {
-  Mutex::Locker locker(m_lock);
+  BasicMutex::Locker locker(m_lock);
   m_blacklist.erase(nonce);
 }
 
 bool TestMemCluster::is_blacklisted(uint32_t nonce) const {
-  Mutex::Locker locker(m_lock);
+  BasicMutex::Locker locker(m_lock);
   return (m_blacklist.find(nonce) != m_blacklist.end());
 }
 
 void TestMemCluster::blacklist(uint32_t nonce) {
   m_watch_notify.blacklist(nonce);
 
-  Mutex::Locker locker(m_lock);
+  BasicMutex::Locker locker(m_lock);
   m_blacklist.insert(nonce);
 }
 
 void TestMemCluster::transaction_start(const std::string &oid) {
-  Mutex::Locker locker(m_lock);
+  BasicMutex::Locker locker(m_lock);
   while (m_transactions.count(oid)) {
     m_transaction_cond.Wait(m_lock);
   }
@@ -147,7 +147,7 @@ void TestMemCluster::transaction_start(const std::string &oid) {
 }
 
 void TestMemCluster::transaction_finish(const std::string &oid) {
-  Mutex::Locker locker(m_lock);
+  BasicMutex::Locker locker(m_lock);
   size_t count = m_transactions.erase(oid);
   assert(count == 1);
   m_transaction_cond.Signal();

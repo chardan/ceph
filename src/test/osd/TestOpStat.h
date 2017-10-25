@@ -10,7 +10,7 @@ class TestOp;
 
 class TestOpStat {
 public:
-  mutable Mutex stat_lock;
+  mutable BasicMutex stat_lock;
 
   TestOpStat() : stat_lock("TestOpStat lock") {}
     

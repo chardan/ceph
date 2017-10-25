@@ -116,7 +116,7 @@ MATCHER_P(CStrEq, str, "") {
 }
 
 ACTION_P2(NotifyInvoke, lock, cond) {
-  Mutex::Locker locker(*lock);
+  BasicMutex::Locker locker(*lock);
   cond->Signal();
 }
 
@@ -335,7 +335,7 @@ public:
 
   void wait_for_op_invoked(Context **on_finish, int r) {
     {
-      Mutex::Locker locker(m_invoke_lock);
+      BasicMutex::Locker locker(m_invoke_lock);
       while (*on_finish == nullptr) {
         m_invoke_cond.Wait(m_invoke_lock);
       }
@@ -349,7 +349,7 @@ public:
     return bl;
   }
 
-  Mutex m_invoke_lock;
+  BasicMutex m_invoke_lock;
   Cond m_invoke_cond;
 };
 

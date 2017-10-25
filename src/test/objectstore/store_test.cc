@@ -3404,7 +3404,7 @@ public:
   ObjectStore *store;
   ObjectStore::Sequencer *osr;
 
-  Mutex lock;
+  BasicMutex lock;
   Cond cond;
 
   struct EnterExit {
@@ -3425,7 +3425,7 @@ public:
       : state(state), hoid(hoid) {}
 
     void finish(int r) override {
-      Mutex::Locker locker(state->lock);
+      BasicMutex::Locker locker(state->lock);
       EnterExit ee("onreadable finish");
       ASSERT_TRUE(state->in_flight_objects.count(hoid));
       ASSERT_EQ(r, 0);
@@ -3452,7 +3452,7 @@ public:
       : state(state), oid(oid), noid(noid) {}
 
     void finish(int r) override {
-      Mutex::Locker locker(state->lock);
+      BasicMutex::Locker locker(state->lock);
       EnterExit ee("stash finish");
       ASSERT_TRUE(state->in_flight_objects.count(oid));
       ASSERT_EQ(r, 0);
@@ -3479,7 +3479,7 @@ public:
       : state(state), oid(oid), noid(noid) {}
 
     void finish(int r) override {
-      Mutex::Locker locker(state->lock);
+      BasicMutex::Locker locker(state->lock);
       EnterExit ee("clone finish");
       ASSERT_TRUE(state->in_flight_objects.count(oid));
       ASSERT_EQ(r, 0);
@@ -3572,7 +3572,7 @@ public:
 
   void wait_for_done() {
     osr->flush();
-    Mutex::Locker locker(lock);
+    BasicMutex::Locker locker(lock);
     while (in_flight)
       cond.Wait(lock);
   }
@@ -3640,7 +3640,7 @@ public:
   }
 
   int touch() {
-    Mutex::Locker locker(lock);
+    BasicMutex::Locker locker(lock);
     EnterExit ee("touch");
     if (!can_create())
       return -ENOSPC;
@@ -3664,7 +3664,7 @@ public:
   }
 
   int stash() {
-    Mutex::Locker locker(lock);
+    BasicMutex::Locker locker(lock);
     EnterExit ee("stash");
     if (!can_unlink())
       return -ENOENT;
@@ -3697,7 +3697,7 @@ public:
   }
 
   int clone() {
-    Mutex::Locker locker(lock);
+    BasicMutex::Locker locker(lock);
     EnterExit ee("clone");
     if (!can_unlink())
       return -ENOENT;
@@ -3731,7 +3731,7 @@ public:
   }
 
   int clone_range() {
-    Mutex::Locker locker(lock);
+    BasicMutex::Locker locker(lock);
     EnterExit ee("clone_range");
     if (!can_unlink())
       return -ENOENT;
@@ -3813,7 +3813,7 @@ public:
 
 
   int write() {
-    Mutex::Locker locker(lock);
+    BasicMutex::Locker locker(lock);
     EnterExit ee("write");
     if (!can_unlink())
       return -ENOENT;
@@ -3861,7 +3861,7 @@ public:
   }
 
   int truncate() {
-    Mutex::Locker locker(lock);
+    BasicMutex::Locker locker(lock);
     EnterExit ee("truncate");
     if (!can_unlink())
       return -ENOENT;
@@ -3895,7 +3895,7 @@ public:
   }
 
   int zero() {
-    Mutex::Locker locker(lock);
+    BasicMutex::Locker locker(lock);
     EnterExit ee("zero");
     if (!can_unlink())
       return -ENOENT;
@@ -3948,7 +3948,7 @@ public:
     bufferlist expected;
     int r;
     {
-      Mutex::Locker locker(lock);
+      BasicMutex::Locker locker(lock);
       EnterExit ee("read locked");
       if (!can_unlink())
         return ;
@@ -3978,7 +3978,7 @@ public:
   }
 
   int setattrs() {
-    Mutex::Locker locker(lock);
+    BasicMutex::Locker locker(lock);
     EnterExit ee("setattrs");
     if (!can_unlink())
       return -ENOENT;
@@ -4030,7 +4030,7 @@ public:
     ghobject_t obj;
     map<string, bufferlist> expected;
     {
-      Mutex::Locker locker(lock);
+      BasicMutex::Locker locker(lock);
       EnterExit ee("getattrs locked");
       if (!can_unlink())
         return ;
@@ -4061,7 +4061,7 @@ public:
     int retry;
     map<string, bufferlist> expected;
     {
-      Mutex::Locker locker(lock);
+      BasicMutex::Locker locker(lock);
       EnterExit ee("getattr locked");
       if (!can_unlink())
         return ;
@@ -4090,7 +4090,7 @@ public:
   }
 
   int rmattr() {
-    Mutex::Locker locker(lock);
+    BasicMutex::Locker locker(lock);
     EnterExit ee("rmattr");
     if (!can_unlink())
       return -ENOENT;
@@ -4125,7 +4125,7 @@ public:
   }
 
   void fsck(bool deep) {
-    Mutex::Locker locker(lock);
+    BasicMutex::Locker locker(lock);
     EnterExit ee("fsck");
     while (in_flight)
       cond.Wait(lock);
@@ -4136,7 +4136,7 @@ public:
   }
 
   void scan() {
-    Mutex::Locker locker(lock);
+    BasicMutex::Locker locker(lock);
     EnterExit ee("scan");
     while (in_flight)
       cond.Wait(lock);
@@ -4199,7 +4199,7 @@ public:
     ghobject_t hoid;
     uint64_t expected;
     {
-      Mutex::Locker locker(lock);
+      BasicMutex::Locker locker(lock);
       EnterExit ee("stat lock1");
       if (!can_unlink())
         return ;
@@ -4215,7 +4215,7 @@ public:
     assert((uint64_t)buf.st_size == expected);
     ASSERT_TRUE((uint64_t)buf.st_size == expected);
     {
-      Mutex::Locker locker(lock);
+      BasicMutex::Locker locker(lock);
       EnterExit ee("stat lock2");
       --in_flight;
       cond.Signal();
@@ -4225,7 +4225,7 @@ public:
   }
 
   int unlink() {
-    Mutex::Locker locker(lock);
+    BasicMutex::Locker locker(lock);
     EnterExit ee("unlink");
     if (!can_unlink())
       return -ENOENT;
@@ -4241,7 +4241,7 @@ public:
   }
 
   void print_internal_state() {
-    Mutex::Locker locker(lock);
+    BasicMutex::Locker locker(lock);
     cerr << "available_objects: " << available_objects.size()
 	 << " in_flight_objects: " << in_flight_objects.size()
 	 << " total objects: " << in_flight_objects.size() + available_objects.size()

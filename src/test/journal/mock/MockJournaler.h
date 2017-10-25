@@ -13,7 +13,7 @@
 #include <string>
 
 class Context;
-class Mutex;
+class BasicMutex;
 
 namespace journal {
 
@@ -149,7 +149,7 @@ struct MockJournalerProxy {
   }
 
   template <typename WorkQueue, typename Timer>
-  MockJournalerProxy(WorkQueue *work_queue, Timer *timer, Mutex *timer_lock,
+  MockJournalerProxy(WorkQueue *work_queue, Timer *timer, BasicMutex *timer_lock,
                      librados::IoCtx &header_ioctx,
                      const std::string &journal_id,
                      const std::string &client_id, const Settings&) {

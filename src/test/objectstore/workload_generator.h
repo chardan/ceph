@@ -80,7 +80,7 @@ class WorkloadGenerator : public TestObjectStoreState {
   bool m_do_stats;
 
   int m_stats_finished_txs;
-  Mutex m_stats_lock;
+  BasicMutex m_stats_lock;
   int m_stats_show_secs;
 
   size_t m_stats_total_written;

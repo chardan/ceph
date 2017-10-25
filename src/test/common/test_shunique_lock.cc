@@ -23,84 +23,84 @@
 
 #include "gtest/gtest.h"
 
-template<typename SharedMutex>
-static bool test_try_lock(SharedMutex* sm) {
+template<typename SharedBasicMutex>
+static bool test_try_lock(SharedBasicMutex* sm) {
   if (!sm->try_lock())
     return false;
   sm->unlock();
   return true;
 }
 
-template<typename SharedMutex>
-static bool test_try_lock_shared(SharedMutex* sm) {
+template<typename SharedBasicMutex>
+static bool test_try_lock_shared(SharedBasicMutex* sm) {
   if (!sm->try_lock_shared())
     return false;
   sm->unlock_shared();
   return true;
 }
 
-template<typename SharedMutex, typename AcquireType>
-static void check_conflicts(SharedMutex sm, AcquireType) {
+template<typename SharedBasicMutex, typename AcquireType>
+static void check_conflicts(SharedBasicMutex sm, AcquireType) {
 }
 
-template<typename SharedMutex>
-static void ensure_conflicts(SharedMutex& sm, ceph::acquire_unique_t) {
+template<typename SharedBasicMutex>
+static void ensure_conflicts(SharedBasicMutex& sm, ceph::acquire_unique_t) {
   auto ttl = &test_try_lock<boost::shared_mutex>;
   auto ttls = &test_try_lock_shared<boost::shared_mutex>;
   ASSERT_FALSE(std::async(std::launch::async, ttl, &sm).get());
   ASSERT_FALSE(std::async(std::launch::async, ttls, &sm).get());
 }
 
-template<typename SharedMutex>
-static void ensure_conflicts(SharedMutex& sm, ceph::acquire_shared_t) {
+template<typename SharedBasicMutex>
+static void ensure_conflicts(SharedBasicMutex& sm, ceph::acquire_shared_t) {
   auto ttl = &test_try_lock<boost::shared_mutex>;
   auto ttls = &test_try_lock_shared<boost::shared_mutex>;
   ASSERT_FALSE(std::async(std::launch::async, ttl, &sm).get());
   ASSERT_TRUE(std::async(std::launch::async, ttls, &sm).get());
 }
 
-template<typename SharedMutex>
-static void ensure_free(SharedMutex& sm) {
+template<typename SharedBasicMutex>
+static void ensure_free(SharedBasicMutex& sm) {
   auto ttl = &test_try_lock<boost::shared_mutex>;
   auto ttls = &test_try_lock_shared<boost::shared_mutex>;
   ASSERT_TRUE(std::async(std::launch::async, ttl, &sm).get());
   ASSERT_TRUE(std::async(std::launch::async, ttls, &sm).get());
 }
 
-template<typename SharedMutex, typename AcquireType>
-static void check_owns_lock(const SharedMutex& sm,
-			    const ceph::shunique_lock<SharedMutex>& sul,
+template<typename SharedBasicMutex, typename AcquireType>
+static void check_owns_lock(const SharedBasicMutex& sm,
+			    const ceph::shunique_lock<SharedBasicMutex>& sul,
 			    AcquireType) {
 }
 
-template<typename SharedMutex>
-static void check_owns_lock(const SharedMutex& sm,
-			    const ceph::shunique_lock<SharedMutex>& sul,
+template<typename SharedBasicMutex>
+static void check_owns_lock(const SharedBasicMutex& sm,
+			    const ceph::shunique_lock<SharedBasicMutex>& sul,
 			    ceph::acquire_unique_t) {
   ASSERT_TRUE(sul.mutex() == &sm);
   ASSERT_TRUE(sul.owns_lock());
   ASSERT_TRUE(!!sul);
 }
 
-template<typename SharedMutex>
-static void check_owns_lock(const SharedMutex& sm,
-			    const ceph::shunique_lock<SharedMutex>& sul,
+template<typename SharedBasicMutex>
+static void check_owns_lock(const SharedBasicMutex& sm,
+			    const ceph::shunique_lock<SharedBasicMutex>& sul,
 			    ceph::acquire_shared_t) {
   ASSERT_TRUE(sul.owns_lock_shared());
   ASSERT_TRUE(!!sul);
 }
 
-template<typename SharedMutex>
-static void check_abjures_lock(const SharedMutex& sm,
-			       const ceph::shunique_lock<SharedMutex>& sul) {
+template<typename SharedBasicMutex>
+static void check_abjures_lock(const SharedBasicMutex& sm,
+			       const ceph::shunique_lock<SharedBasicMutex>& sul) {
   ASSERT_EQ(sul.mutex(), &sm);
   ASSERT_FALSE(sul.owns_lock());
   ASSERT_FALSE(sul.owns_lock_shared());
   ASSERT_FALSE(!!sul);
 }
 
-template<typename SharedMutex>
-static void check_abjures_lock(const ceph::shunique_lock<SharedMutex>& sul) {
+template<typename SharedBasicMutex>
+static void check_abjures_lock(const ceph::shunique_lock<SharedBasicMutex>& sul) {
   ASSERT_EQ(sul.mutex(), nullptr);
   ASSERT_FALSE(sul.owns_lock());
   ASSERT_FALSE(sul.owns_lock_shared());

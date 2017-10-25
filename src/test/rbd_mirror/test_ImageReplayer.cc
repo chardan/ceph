@@ -57,7 +57,7 @@ public:
   struct C_WatchCtx : public librados::WatchCtx2 {
     TestImageReplayer *test;
     std::string oid;
-    Mutex lock;
+    BasicMutex lock;
     Cond cond;
     bool notified;
 
@@ -70,7 +70,7 @@ public:
       bufferlist bl;
       test->m_remote_ioctx.notify_ack(oid, notify_id, cookie, bl);
 
-      Mutex::Locker locker(lock);
+      BasicMutex::Locker locker(lock);
       notified = true;
       cond.Signal();
     }
@@ -284,7 +284,7 @@ public:
       return false;
     }
 
-    Mutex::Locker locker(m_watch_ctx->lock);
+    BasicMutex::Locker locker(m_watch_ctx->lock);
     while (!m_watch_ctx->notified) {
       if (m_watch_ctx->cond.WaitInterval(m_watch_ctx->lock,
 					 utime_t(seconds, 0)) != 0) {

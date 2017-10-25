@@ -88,7 +88,7 @@ private:
   uint64_t m_handle = 0;
   uint64_t m_notify_id = 0;
 
-  Mutex m_lock;
+  BasicMutex m_lock;
   uint64_t m_pending_notifies = 0;
 
   Cond m_file_watcher_cond;

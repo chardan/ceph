@@ -45,7 +45,7 @@ struct ManagedLock<MockExclusiveLockImageCtx> {
 
   virtual ~ManagedLock() = default;
 
-  mutable Mutex m_lock;
+  mutable BasicMutex m_lock;
 
   virtual void shutdown_handler(int r, Context *) = 0;
   virtual void pre_acquire_lock_handler(Context *) = 0;

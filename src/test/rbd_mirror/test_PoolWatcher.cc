@@ -78,7 +78,7 @@ public:
     void handle_update(const std::string &mirror_uuid,
                        ImageIds &&added_image_ids,
                        ImageIds &&removed_image_ids) override {
-      Mutex::Locker locker(test->m_lock);
+      BasicMutex::Locker locker(test->m_lock);
       for (auto &image_id : removed_image_ids) {
         image_ids.erase(image_id);
       }
@@ -203,7 +203,7 @@ public:
   }
 
   void check_images() {
-    Mutex::Locker l(m_lock);
+    BasicMutex::Locker l(m_lock);
     while (m_mirrored_images != m_pool_watcher_listener.image_ids) {
       if (m_pool_watcher_listener.cond.WaitInterval(
             m_lock, utime_t(10, 0)) != 0) {
@@ -214,7 +214,7 @@ public:
     ASSERT_EQ(m_mirrored_images, m_pool_watcher_listener.image_ids);
   }
 
-  Mutex m_lock;
+  BasicMutex m_lock;
   RadosRef m_cluster;
   PoolWatcherListener m_pool_watcher_listener;
   unique_ptr<PoolWatcher<> > m_pool_watcher;
