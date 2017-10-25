@@ -87,7 +87,7 @@ public:
   struct fuse_session *se;
   char *mountpoint;
 
-  Mutex stag_lock;
+  BasicMutex stag_lock;
   int last_stag;
 
   ceph::unordered_map<uint64_t,int> snap_stag_map;
