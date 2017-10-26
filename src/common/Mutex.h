@@ -66,6 +66,9 @@ class BasicMutex
  CephContext *cct      = nullptr;
  PerfCounters *logger  = nullptr;
 
+#warning JFW need to provide a way to turn this on
+ bool backtrace = false;
+
  private:
  BasicMutex(const BasicMutex&)   = delete;
  void operator=(const BasicMutex&) = delete;
@@ -73,9 +76,9 @@ class BasicMutex
  public:
  BasicMutex(const std::string& name_, CephContext *cct_);
 
- BasicMutex(const std::string name_)
+ BasicMutex(const std::string& name_)
   : BasicMutex(name_, nullptr)
- {}
+ {} 
 
  ~BasicMutex();
 

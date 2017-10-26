@@ -19,9 +19,11 @@
 #include "common/valgrind.h"
 
 BasicMutex::BasicMutex(const std::string& name_, CephContext *cct_)
- : name(name),
+ : name(name_),
    cct(cct_)
 {
+#warning JFW fixup
+// JFW: curious as to why it's ok that races on these are all right with us?
   ANNOTATE_BENIGN_RACE_SIZED(&lockdep_id, sizeof(lockdep_id), "Mutex lockdep id");
   ANNOTATE_BENIGN_RACE_SIZED(&nlocks, sizeof(nlocks), "Mutex nlock");
   ANNOTATE_BENIGN_RACE_SIZED(&locked_by, sizeof(locked_by), "Mutex locked_by");
@@ -120,7 +122,7 @@ void BasicMutex::Unlock()
 }
 
 NoLockDepMutex::NoLockDepMutex(const std::string& name_, CephContext *cct_)
- : name(name),
+ : name(name_),
    cct(cct_)
 {
   ANNOTATE_BENIGN_RACE_SIZED(&nlocks, sizeof(nlocks), "Mutex nlock");
