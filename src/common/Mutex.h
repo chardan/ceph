@@ -116,7 +116,7 @@ class BasicMutex
 
 #warning JFW consider consolidating these
   void _post_lock() {
-    assert(nlocks == 0);
+    assert(nlocks == 0);	// JFW: makes no sense for recursive locks...
     locked_by = std::this_thread::get_id();
     nlocks++;
   }
@@ -202,7 +202,7 @@ class NoLockDepMutex
 };
 
 // RecursiveMutex: A recursive mutex with LockDep (the default):
-// 	recursive = true, lockdep = false, backtrace = false
+// 	recursive = true, lockdep = true, backtrace = false
 class RecursiveMutex
 {
  friend class Cond;
@@ -221,8 +221,6 @@ class RecursiveMutex
  std::recursive_mutex mtx;
 
  int nlocks = 0;
-
- std::thread::id locked_by; 
 
  CephContext *cct      = nullptr;
  PerfCounters *logger  = nullptr;
@@ -256,21 +254,16 @@ class RecursiveMutex
 #warning JFW race conditions waiting to happen!
  public:
  bool is_locked() const 	{ return nlocks; } 
- bool is_locked_by_me() const 	{ return is_locked() && std::this_thread::get_id() == locked_by; }
+ bool is_locked_by_me() const 	{ return is_locked(); } // JFW might need to put lock ownership in again? (cf. unique_lock<>)
 
 #warning JFW consider consolidating these
   void _post_lock() {
-    assert(nlocks == 0);
-    locked_by = std::this_thread::get_id();
     nlocks++;
   }
 
   void _pre_unlock() {
     assert(nlocks > 0);
     --nlocks;
-    assert(std::this_thread::get_id() == locked_by);
-    locked_by = std::thread::id();
-    assert(nlocks == 0);
   }
 };
 
