@@ -374,8 +374,8 @@ namespace buffer CEPH_BUFFER_API {
       typedef typename std::conditional<is_const,
 					typename buffers_t::const_iterator,
 					typename buffers_t::iterator>::type list_iter_t;
-      bl_t* bl;
-      list_t* ls;  // meh.. just here to avoid an extra pointer dereference..
+      bl_t bl;
+// JFW      list_t* ls;  // meh.. just here to avoid an extra pointer dereference..
       unsigned off; // in bl
       list_iter_t p;
       unsigned p_off;   // in *p
@@ -384,10 +384,12 @@ namespace buffer CEPH_BUFFER_API {
     public:
       // constructor.  position.
       iterator_impl()
-	: bl(0), ls(0), off(0), p_off(0) {}
+// JFW	: bl(0), ls(0), off(0), p_off(0) {}
+	: bl(0), off(0), p_off(0) {}
       iterator_impl(bl_t *l, unsigned o=0);
       iterator_impl(bl_t *l, unsigned o, list_iter_t ip, unsigned po)
-	: bl(l), ls(&bl->_buffers), off(o), p(ip), p_off(po) {}
+// JFW	: bl(l), ls(&bl->_buffers), off(o), p(ip), p_off(po) {}
+	: bl(l), off(o), p(ip), p_off(po) {}
       iterator_impl(const list::iterator& i);
 
       /// get current iterator offset in buffer::list
@@ -396,11 +398,13 @@ namespace buffer CEPH_BUFFER_API {
       /// get number of bytes remaining from iterator position to the end of the buffer::list
       unsigned get_remaining() const { return bl->length() - off; }
 
+/* JFW
       /// true if iterator is at the end of the buffer::list
       bool end() const {
 	return p == ls->end();
 	//return off == bl->length();
       }
+*/
 
       void advance(int o);
       void seek(unsigned o);
