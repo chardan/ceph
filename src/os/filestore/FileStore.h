@@ -224,14 +224,14 @@ private:
     ZTracer::Trace trace;
   };
   class OpSequencer : public Sequencer_impl {
-    BasicMutex qlock; // to protect q, for benefit of flush (peek/dequeue also protected by lock)
+    NoLockDepMutex qlock; // to protect q, for benefit of flush (peek/dequeue also protected by lock)
     list<Op*> q;
     list<uint64_t> jq;
     list<pair<uint64_t, Context*> > flush_commit_waiters;
     Cond cond;
   public:
     Sequencer *parent;
-    BasicMutex apply_lock;  // for apply mutual exclusion
+    NoLockDepMutex apply_lock;  // for apply mutual exclusion
     int id;
 
     /// get_max_uncompleted
@@ -284,22 +284,22 @@ private:
     }
 
     void queue_journal(uint64_t s) {
-      Mutex::Locker l(qlock);
+      std::lock_guard<NoLockDepMutex> l(qlock);
       jq.push_back(s);
     }
     void dequeue_journal(list<Context*> *to_queue) {
-      Mutex::Locker l(qlock);
+      std::lock_guard<NoLockDepMutex> l(qlock);
       jq.pop_front();
       cond.Signal();
       _wake_flush_waiters(to_queue);
     }
     void queue(Op *o) {
-      Mutex::Locker l(qlock);
+      std::lock_guard<NoLockDepMutex> l(qlock);
       q.push_back(o);
       o->trace.keyval("queue depth", q.size());
     }
     Op *peek_queue() {
-      Mutex::Locker l(qlock);
+      std::lock_guard<NoLockDepMutex> l(qlock);
       assert(apply_lock.is_locked());
       return q.front();
     }
@@ -307,7 +307,7 @@ private:
     Op *dequeue(list<Context*> *to_queue) {
       assert(to_queue);
       assert(apply_lock.is_locked());
-      Mutex::Locker l(qlock);
+      std::lock_guard<NoLockDepMutex> l(qlock);
       Op *o = q.front();
       q.pop_front();
       cond.Signal();
@@ -317,7 +317,7 @@ private:
     }
 
     void flush() override {
-      Mutex::Locker l(qlock);
+      std::lock_guard<NoLockDepMutex> l(qlock);
 
       while (cct->_conf->filestore_blackhole)
 	cond.Wait(qlock);  // wait forever
@@ -338,7 +338,7 @@ private:
       }
     }
     bool flush_commit(Context *c) override {
-      Mutex::Locker l(qlock);
+      std::lock_guard<NoLockDepMutex> l(qlock);
       uint64_t seq = 0;
       if (_get_max_uncompleted(&seq)) {
 	return true;
@@ -350,9 +350,9 @@ private:
 
     OpSequencer(CephContext* cct, int i)
       : Sequencer_impl(cct),
-	qlock("FileStore::OpSequencer::qlock", Mutex::lockdep_flag::disable),
+	qlock("FileStore::OpSequencer::qlock"),
 	parent(0),
-	apply_lock("FileStore::OpSequencer::apply_lock", Mutex::lockdep_flag::disable),
+	apply_lock("FileStore::OpSequencer::apply_lock"),
         id(i) {}
     ~OpSequencer() override {
       assert(q.empty());

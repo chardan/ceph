@@ -531,7 +531,7 @@ int Pipe::accept()
     // existing?
     existing = msgr->_lookup_pipe(peer_addr);
     if (existing) {
-      existing->pipe_lock.Lock(true);  // skip lockdep check (we are locking a second Pipe here)
+      existing->pipe_lock.Lock(Mutex::lockdep_flag::disable);  // skip lockdep check (we are locking a second Pipe here)
       if (existing->reader_dispatching) {
 	/** we need to wait, or we can deadlock if downstream
 	 *  fast_dispatchers are (naughtily!) waiting on resources

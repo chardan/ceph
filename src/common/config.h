@@ -240,7 +240,7 @@ private:
 public:  // for global_init
   bool early_expand_meta(std::string &val,
 			 std::ostream *oss) const {
-    Mutex::Locker l(lock);
+    std::lock_guard<RecursiveMutex> l(lock);
     return expand_meta(val, oss);
   }
 private:

@@ -42,7 +42,7 @@ struct AioCompletion {
   } aio_state_t;
 #warning JFW note that the original mutex is recursive-- but does not appear to be used that way
 //JFW:  mutable RecursiveMutex lock;
-  mutable BasicMutex lock;
+  mutable NoLockDepMutex lock;
   Cond cond;
   aio_state_t state;
   ssize_t rval;
@@ -98,7 +98,7 @@ struct AioCompletion {
     return comp;
   }
 
-  AioCompletion() : lock("AioCompletion::lock", Mutex::lockdep_flag::disable),
+  AioCompletion() : lock("AioCompletion::lock"),
                     state(AIO_STATE_PENDING), rval(0), complete_cb(NULL),
                     complete_arg(NULL), rbd_comp(NULL),
                     pending_count(0), blockers(1),
@@ -115,11 +115,11 @@ struct AioCompletion {
   void finalize(ssize_t rval);
 
   inline bool is_initialized(aio_type_t type) const {
-    Mutex::Locker locker(lock);
+    std::lock_guard<NoLockDepMutex> locker(lock);
     return ((ictx != nullptr) && (aio_type == type));
   }
   inline bool is_started() const {
-    Mutex::Locker locker(lock);
+    std::lock_guard<NoLockDepMutex> locker(lock);
     return async_op.started();
   }
 
@@ -186,11 +186,11 @@ struct AioCompletion {
   }
 
   void block() {
-    Mutex::Locker l(lock);
+    std::lock_guard<NoLockDepMutex> locker(lock);
     ++blockers;
   }
   void unblock() {
-    Mutex::Locker l(lock);
+    std::lock_guard<NoLockDepMutex> locker(lock);
     assert(blockers > 0);
     --blockers;
     if (pending_count == 0 && blockers == 0) {
@@ -200,7 +200,7 @@ struct AioCompletion {
   }
 
   void set_event_notify(bool s) {
-    Mutex::Locker l(lock);
+    std::lock_guard<NoLockDepMutex> locker(lock);
     event_notify = s;
   }
 

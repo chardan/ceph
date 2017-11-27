@@ -22,7 +22,7 @@
 
 struct libradosstriper::MultiAioCompletionImpl {
 
-  BasicMutex lock;
+  NoLockDepMutex lock;
   Cond cond;
   int ref, rval;
   int pending_complete, pending_safe;
@@ -33,7 +33,7 @@ struct libradosstriper::MultiAioCompletionImpl {
   std::list<bufferlist*> bllist; /// keep temporary buffer lists used for destriping
 
   MultiAioCompletionImpl() : 
-    lock("MultiAioCompletionImpl lock", Mutex::lockdep_flag::disable),
+    lock("MultiAioCompletionImpl lock"),
     ref(1), rval(0),
     pending_complete(0), pending_safe(0),
     callback_complete(0), callback_safe(0),

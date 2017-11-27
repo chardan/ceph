@@ -21,7 +21,7 @@ public:
   bool empty();
 
 private:
-  BasicMutex m_lock;
+  NoLockDepMutex m_lock;
   uint32_t m_pending_ops = 0;
   Context *m_on_finish = nullptr;
 

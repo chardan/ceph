@@ -168,7 +168,18 @@ public:
 
   void exit_thread()
   {
+#warning JFW fixme
+ auto t_id  = std::this_thread::get_id();
+ auto pt_id = pthread_self();
+std::cout << "t_id = " << t_id << ", pt_id = " << pt_id << '\n';
+if(_lock.locked_by != t_id) {
+ std::cout << "JFW another owner!\n";
+}
+else
+ std::cout << "We're home!\n";
+
     Mutex::Locker l(_lock);
+
     _exit_thread = true;
     _cond.Signal();
   }
@@ -180,7 +191,6 @@ private:
   bool _exit_thread;
   CephContext *_cct;
 };
-
 
 /**
  * observe logging config changes

@@ -52,11 +52,11 @@ public:
   int get_return_value() const;
 
   inline bool is_flush_in_progress() const {
-    Mutex::Locker locker(m_lock);
+    std::lock_guard<NoLockDepMutex> locker(m_lock);
     return (m_flush_state == FLUSH_STATE_IN_PROGRESS);
   }
   inline void set_flush_in_progress() {
-    Mutex::Locker locker(m_lock);
+    std::lock_guard<NoLockDepMutex> locker(m_lock);
     assert(m_flush_handler);
     m_flush_handler.reset();
     m_flush_state = FLUSH_STATE_IN_PROGRESS;
@@ -64,11 +64,11 @@ public:
 
   bool attach(const FlushHandlerPtr &flush_handler);
   inline void detach() {
-    Mutex::Locker locker(m_lock);
+    std::lock_guard<NoLockDepMutex> locker(m_lock);
     m_flush_handler.reset();
   }
   inline FlushHandlerPtr get_flush_handler() const {
-    Mutex::Locker locker(m_lock);
+    std::lock_guard<NoLockDepMutex> locker(m_lock);
     return m_flush_handler;
   }
 
@@ -100,7 +100,7 @@ private:
   uint64_t m_entry_tid;
   uint64_t m_commit_tid;
 
-  mutable BasicMutex m_lock;
+  mutable NoLockDepMutex m_lock;
   FutureImplPtr m_prev_future;
   bool m_safe;
   bool m_consistent;
@@ -113,7 +113,7 @@ private:
   Contexts m_contexts;
 
   FutureImplPtr prepare_flush(FlushHandlers *flush_handlers);
-  FutureImplPtr prepare_flush(FlushHandlers *flush_handlers, BasicMutex &lock);
+  FutureImplPtr prepare_flush(FlushHandlers *flush_handlers, NoLockDepMutex &Lock);
 
   void consistent(int r);
   void finish_unlock();

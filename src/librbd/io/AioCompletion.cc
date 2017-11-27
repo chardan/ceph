@@ -112,7 +112,7 @@ void AioCompletion::complete() {
 }
 
 void AioCompletion::init_time(ImageCtx *i, aio_type_t t) {
-  Mutex::Locker locker(lock);
+  std::lock_guard<NoLockDepMutex> locker(lock);
   if (ictx == nullptr) {
     ictx = i;
     aio_type = t;
@@ -121,7 +121,7 @@ void AioCompletion::init_time(ImageCtx *i, aio_type_t t) {
 }
 
 void AioCompletion::start_op(bool ignore_type) {
-  Mutex::Locker locker(lock);
+  std::lock_guard<NoLockDepMutex> locker(lock);
   assert(ictx != nullptr);
   assert(!async_op.started());
   if (state == AIO_STATE_PENDING &&
@@ -182,7 +182,7 @@ void AioCompletion::complete_request(ssize_t r)
 }
 
 void AioCompletion::associate_journal_event(uint64_t tid) {
-  Mutex::Locker l(lock);
+  std::lock_guard<NoLockDepMutex> locker(lock);
   assert(state == AIO_STATE_PENDING);
   journal_tid = tid;
 }
@@ -191,7 +191,7 @@ bool AioCompletion::is_complete() {
   tracepoint(librbd, aio_is_complete_enter, this);
   bool done;
   {
-    Mutex::Locker l(lock);
+    std::lock_guard<NoLockDepMutex> l(lock);
     done = this->state == AIO_STATE_COMPLETE;
   }
   tracepoint(librbd, aio_is_complete_exit, done);

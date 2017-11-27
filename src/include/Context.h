@@ -345,7 +345,7 @@ public:
     mydout(cct,10) << "C_GatherBase " << this << ".delete" << dendl;
   }
   void set_finisher(ContextType *onfinish_) {
-    Mutex::Locker l(lock);
+    std::lock_guard<RecursiveMutex> l(lock);
     assert(!onfinish);
     onfinish = onfinish_;
   }
@@ -361,7 +361,7 @@ public:
     delete_me();
   }
   ContextType *new_sub() {
-    Mutex::Locker l(lock);
+    std::lock_guard<RecursiveMutex> l(lock);
     assert(activated == false);
     sub_created_count++;
     sub_existing_count++;
@@ -377,12 +377,12 @@ public:
   }
 
   inline int get_sub_existing_count() const {
-    Mutex::Locker l(lock);
+    std::lock_guard<RecursiveMutex> l(lock);
     return sub_existing_count;
   }
 
   inline int get_sub_created_count() const {
-    Mutex::Locker l(lock);
+    std::lock_guard<RecursiveMutex> l(lock);
     return sub_created_count;
   }
 };

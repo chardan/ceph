@@ -259,7 +259,7 @@ struct RadosStriperImpl {
   // reference counting
   Cond  cond;
   int m_refCnt;
-  BasicMutex lock;
+  NoLockDepMutex lock;
 
 
   // Context
