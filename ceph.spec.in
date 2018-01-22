@@ -877,6 +877,11 @@ cmake .. \
 %else
     -DWITH_BOOST_CONTEXT=OFF \
 %endif
+%if 0%{with libradosstriper}
+    -DWITH_LIBRADOSSTRIPER=ON \
+%else
+    -DWITH_LIBRADOSSTRIPER=OFF \
+%endif
     -DBOOST_J=%{_smp_ncpus}
 
 make %{?_smp_mflags}
