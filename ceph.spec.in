@@ -34,6 +34,11 @@
 %if 0%{?suse_version}
 %bcond_with selinux
 %endif
+%if 0%{?suse_version} && ! 0%{?is_opensuse}
+%bcond_with libradosstriper
+%else
+%bcond_without libradosstriper
+%endif
 
 # LTTng-UST enabled on Fedora, RHEL 6+, and SLE (not openSUSE)
 %if 0%{?fedora} || 0%{?rhel} >= 6 || 0%{?suse_version}
@@ -273,6 +278,9 @@ Group:		System/Filesystems
 %endif
 Requires:	librbd1 = %{_epoch_prefix}%{version}-%{release}
 Requires:	librados2 = %{_epoch_prefix}%{version}-%{release}
+%if 0%{with libradosstriper}
+Requires:	libradosstriper1 = %{_epoch_prefix}%{version}-%{release}
+%endif
 Requires:	libcephfs2 = %{_epoch_prefix}%{version}-%{release}
 Requires:	python-rados = %{_epoch_prefix}%{version}-%{release}
 Requires:	python-rbd = %{_epoch_prefix}%{version}-%{release}
@@ -538,6 +546,7 @@ Requires:	librados2 = %{_epoch_prefix}%{version}-%{release}
 This package contains Python 3 libraries for interacting with Cephs RADOS
 object store.
 
+%if 0%{with libradosstriper}
 %package -n libradosstriper1
 Summary:	RADOS striping interface
 %if 0%{?suse_version}
@@ -562,6 +571,7 @@ Obsoletes:	libradosstriper1-devel < %{_epoch_prefix}%{version}-%{release}
 %description -n libradosstriper-devel
 This package contains libraries and headers needed to develop programs
 that use RADOS striping interface.
+%endif
 
 %package -n librbd1
 Summary:	RADOS block device client library
@@ -1536,6 +1546,7 @@ fi
 %{python3_sitearch}/rados.cpython*.so
 %{python3_sitearch}/rados-*.egg-info
 
+%if 0%{with libradosstriper}
 %files -n libradosstriper1
 %{_libdir}/libradosstriper.so.*
 
@@ -1548,6 +1559,7 @@ fi
 %{_includedir}/radosstriper/libradosstriper.h
 %{_includedir}/radosstriper/libradosstriper.hpp
 %{_libdir}/libradosstriper.so
+%endif
 
 %files -n librbd1
 %{_libdir}/librbd.so.*
