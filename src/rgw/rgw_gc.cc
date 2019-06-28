@@ -142,6 +142,14 @@ class RGWGCIOManager {
     string oid;
     int index{-1};
     string tag;
+
+    public:
+    IO() = default;
+
+    IO(IO::Type const type, librados::AioCompletion* const c, 
+       std::string const& oid, int const index, std::string const& tag)
+     : type(type), c(c), oid(oid), index(index), tag(tag)
+    {}
   };
 
   deque<IO> ios;
@@ -175,7 +183,7 @@ public:
     if (ret < 0) {
       return ret;
     }
-    ios.push_back(IO{IO::TailIO, c, oid, index, tag});
+    ios.push_back(IO(IO::TailIO, c, oid, index, tag));
 
     return 0;
   }
