@@ -20,6 +20,7 @@
 
 #include <fmt/format.h>
 #include <fmt/chrono.h>
+#include <fmt/ranges.h>
 
 #include "rgw/fdb/fdb.h"
 
@@ -28,23 +29,32 @@
 using std::string;
 using std::string_view;
 
+using std::to_string;
+
+using namespace std::literals::string_literals;
+
 using fmt::format;
 using fmt::println;
 
 namespace lfdb = ceph::libfdb;
 
-TEST_CASE("fdb present", "[rgw][fdb]") 
+inline std::map<std::string, std::string> make_monotonic_kvs(const unsigned N)
+{
+ std::map<std::string, std::string> kvs;
+
+ for(const auto i : std::ranges::iota_view(0u, N)) {
+  auto n = std::to_string(i);
+  kvs.insert({"key_"s += n, "value_"s += n});
+ }
+
+ return kvs;
+}
+
+// Basically, make sure we're actually linking with the library:
+TEST_CASE()
 {
  REQUIRE_THROWS_AS([] { throw ceph::libfdb::fdb_exception(0); }(),
                    ceph::libfdb::fdb_exception);
-}
-
-TEST_CASE("wombat") {
- auto dbh = lfdb::make_database();
- REQUIRE(nullptr != dbh);
-
- auto txn_handle = lfdb::make_transaction(dbh);
- CHECK_NOTHROW(lfdb::set(txn_handle, "MORTAL", "WOMBAT", lfdb::commit_after_op::commit));
 }
 
 TEST_CASE("fdb simple", "[rgw][fdb]") {
@@ -110,7 +120,6 @@ TEST_CASE("fdb simple", "[rgw][fdb]") {
     REQUIRE(nullptr != dbh);
 
     // First, be sure we have a valid value written to the database:
-
     REQUIRE_NOTHROW(lfdb::set(lfdb::make_transaction(dbh), k, v, lfdb::commit_after_op::commit));
 
     SECTION("read transaction") {
@@ -122,12 +131,44 @@ TEST_CASE("fdb simple", "[rgw][fdb]") {
  }
 }
 
+TEST_CASE("fdb multi-key", "[rgw][fdb]") {
+
+ auto dbh = lfdb::make_database();
+ CHECK(nullptr != dbh);
+
+ // Write a sequence of keys so we have some data to work with:
+ const auto kvs = make_monotonic_kvs(100);
+
+ lfdb::set(lfdb::make_transaction(dbh), begin(kvs), end(kvs), lfdb::commit_after_op::commit);
+
+ SECTION("check multiple key write", "[fdb]") {
+  auto txn = lfdb::make_transaction(dbh);
+
+  std::string out_value;
+  CHECK(lfdb::get(txn, "key_0", out_value));
+  CHECK(*(kvs.find("key_0")) == out_value);
+
+  out_value.clear();
+  CHECK(lfdb::get(txn, "key_99", out_value));
+  CHECK(*(kvs.find("key_99") == out_value);
+ }
+
+ SECTION("check multiple key selection", "[fdb]") {
+  auto txn = lfdb::make_transaction(dbh);
+
+  std::map<string, string> out_values;
+  lfdb::get(txn, ?? key range, std::inserter(out_values, begin(my_values)));
+ } 
+}
+
 TEST_CASE("multi-key CRD", "[rgw][fdb]")
 {
  const std::map<std::string, std::string> kvs {
     { "key", "value" }, 
     { "mortal", "wombat" } 
   };
+
+ // JFW: TBD
 }
 
 TEST_CASE("fdb misc", "[fdb]")

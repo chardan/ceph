@@ -72,6 +72,15 @@ struct future_value
  FDBFuture *raw_handle() const noexcept { return future_ptr.get(); }
 };
 
+// Analogs to work with key ranges:
+/* JFW:
+#define         FDB_KEYSEL_LAST_LESS_THAN(k, l) k, l, 0, 0
+#define     FDB_KEYSEL_LAST_LESS_OR_EQUAL(k, l) k, l, 1, 0
+#define     FDB_KEYSEL_FIRST_GREATER_THAN(k, l) k, l, 1, 1
+#define FDB_KEYSEL_FIRST_GREATER_OR_EQUAL(k, l) k, l, 0, 1
+*/
+enum struct key_selector { first_gt, first_gteq, last_lt, last_lteq };
+
 // Should we commit after the (possibly) mutating operation?
 enum struct commit_after_op { commit, no_commit };
 
@@ -107,10 +116,10 @@ inline void buffer_to_string(const uint8_t *buffer, int buffer_len, std::string&
 #endif
 }
 
-// The alternative was "Span-ish", but it was a little /too/ cute:
-auto ptr_and_sz(const auto& spanlike)
+// The alternatives were "spanlike" or even "Span-ish", but that was a little /too/ cute:
+auto ptr_and_sz(const auto& spanoid)
 {
- return std::tuple { spanlike.data(), spanlike.size() };
+ return std::tuple { spanoid.data(), spanoid.size() };
 }
 
 } // namespace ceph::libfdb::detail
@@ -181,6 +190,12 @@ class transaction final
  FDBTransaction *raw_handle() const noexcept { return txn_handle; }
 
  private:
+ void set_option(FDBTransactionOption o, std::string_view v) {
+    detail::check_fdb_result(
+      fdb_transaction_set_option(raw_handle(), o, (const std::uint8_t *)v.data(), v.length()));
+ }
+
+ private:
 // JFW: cautionary tales abound-- probably turn down the dial:
  void commit(); // JFW: always happens in dtor; maybe fix
 /* void cancel(); // JFW: track for dtor
@@ -198,15 +213,26 @@ class transaction final
 			  (const std::uint8_t *)k.data(), k.size());
  }
 
- void set_option(FDBTransactionOption o, std::string_view v) {
-    detail::check_fdb_result(
-      fdb_transaction_set_option(raw_handle(), o, (const std::uint8_t *)v.data(), v.length()));
- }
-
  private:
+ // Handling returned ranges requires some special mechanism, as the database will return results
+ // concurrently and the application may want to adopt different strategies for handling them. Here,
+ // we provide a flexible iterator for retrieving many results, or a simpler sequence interface for
+ // dealing with more straightforward batching:
 
+/* JFW:
+ template <typename OutIterator>
+ size_t 
+ 
+
+FDBFuture *fdb_transaction_get_range(FDBTransaction *transaction, uint8_t const *begin_key_name, int begin_key_name_length, fdb_bool_t begin_or_equal, int begin_offset, uint8_t const *end_key_name, int end_key_name_length, fdb_bool_t end_or_equal, int end_offset, int limit, int target_bytes, FDBStreamingMode mode, int iteration, fdb_bool_t snapshot, fdb_bool_t reverse)
+*/
+ 
+ private:
  template <typename K, typename V>
  friend inline void set(transaction_handle h, K k, V v, const commit_after_op commit_after);
+
+ template <std::input_iterator PairIter>
+ friend inline void set(transaction_handle h, PairIter b, PairIter e, const commit_after_op commit_after);
 
  template <typename K>
  friend inline void erase(transaction_handle h, K k, const commit_after_op commit_after);
@@ -217,6 +243,7 @@ class transaction final
 //JFW: friend void set_option(transaction_handle& txn, FDBTransactionOption o, std::string_view v);
 //
  friend transaction_handle make_transaction(database_handle dbh);
+ // JFW: friend transaction_handle make_transaction(database_handle dbh, const transaction_options& txn_opts);
 };
 
 } // namespace ceph::libfdb
