@@ -57,11 +57,6 @@ using namespace std::literals::string_literals;
 
 namespace lfdb = ceph::libfdb;
 
-namespace {
-// make a database handle:
-//JFW: auto dbh = lfdb::create_database();
-} // namespace
-
 // Be nice to Catch2's template-test macros:
 using string_pair = std::pair<std::string, std::string>;
 
@@ -284,7 +279,7 @@ TEMPLATE_PRODUCT_TEST_CASE("multi-key ops", "[rgw][fdb]",
  // Write a sequence of keys so we have some data to work with:
  const auto kvs = make_monotonic_kvs(100);
 
- lfdb::set(lfdb::make_transaction(dbh), begin(kvs), end(kvs), lfdb::commit_after_op::commit);
+ lfdb::set(dbh, begin(kvs), end(kvs)); 
 
  SECTION("check multiple key write", "[fdb]") {
   auto txn = lfdb::make_transaction(dbh);
@@ -611,7 +606,7 @@ SCENARIO("options", "[fdb]")
  }
 }
 
-TEST_CASE("Gal demo", "[fdb]") {
+TEST_CASE("mini-demo", "[fdb]") {
  janitor j;
 
  using std::map;

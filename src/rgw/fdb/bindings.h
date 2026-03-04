@@ -137,7 +137,7 @@ inline void set(database_handle dbh, std::string_view k, const auto& v)
  return set(make_transaction(dbh), k, v, commit_after_op::commit);
 }
 
-// JFW: this needs lifting on the iterator types; being limited to std::map<s, s> is purely artifical:
+// JFW: this needs lifting on the iterator types; being limited to std::map<s, s> is purely artifical, Ranges should be supported:
 inline void set(transaction_handle txn, std::map<std::string, std::string>::const_iterator b, std::map<std::string, std::string>::const_iterator e, const commit_after_op commit_after)
 {
  detail::maybe_commit mc(txn, commit_after);
@@ -145,6 +145,11 @@ inline void set(transaction_handle txn, std::map<std::string, std::string>::cons
  std::for_each(b, e, [&txn](const auto& kv) {
             txn->set(detail::as_fdb_span(kv.first), ceph::libfdb::to::convert(kv.second)); 
            });
+}
+
+inline void set(transaction_handle txn, std::map<std::string, std::string>::const_iterator b, std::map<std::string, std::string>::const_iterator e)
+{
+ return set(txn, b, e, commit_after_op::commit);
 }
 
 // JFW: this is a glaring embarassment in the interface-- ok for now as I'm just trying to get things to
@@ -155,10 +160,16 @@ inline void set(transaction_handle txn, const char *k, const char *v, ceph::libf
  return txn->set(detail::as_fdb_span(k), detail::as_fdb_span(v));
 }
 
+inline void set(transaction_handle txn, auto b, auto e)
+{
+ return set(txn, b, e, commit_after_op::commit);
+}
+
 //JFW: this likely needs disambiguation of iterator vs. const char *
 inline void set(database_handle dbh, auto b, auto e)
 {
- return set(make_transaction(dbh), b, e, commit_after_op::commit);
+ return set(make_transaction(dbh), b, e); 
+//JFW:, commit_after_op::commit);
 }
 
 } // namespace ceph::libfdb
