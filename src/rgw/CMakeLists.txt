@@ -1,3 +1,8 @@
+include(HasCppFeature)
+require_cpp_feature(__cpp_lib_generator HAVE_CPP_LIB_GENERATOR
+    GIT_REPOSITORY https://github.com/lewissbaker/generator
+    GIT_TAG main)
+
 find_program(GPERF gperf
   REQUIRED)
 
