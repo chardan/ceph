@@ -757,6 +757,8 @@ if(WITH_RADOSGW_FDB)
 
  add_library(rgw_fdb INTERFACE)
 
+ target_compile_definitions(rgw_common PUBLIC WITH_RADOSGW_FDB=1)
+
  target_link_libraries(rgw_fdb INTERFACE
   -lfdb_c
   -lm

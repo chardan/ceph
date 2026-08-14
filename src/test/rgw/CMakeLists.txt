@@ -4,10 +4,12 @@
 #   add_catch2_test_rgw(my_test_name NO_CATCH2_MAIN)
 # ...your test should be in a file called "test_<my_test_name>.cc (ex. "test_foo.cc")
 # and the output will be called "unittest_my_test_name".
+# Use SOURCE when the test lives outside this directory:
+#   add_catch2_test_rgw(my_test_name SOURCE subdir/test_my_test_name.cc)
 #
 function(add_catch2_test_rgw test_name)
 add_catch2_test(${test_name}
- ${ARGV1}
+ ${ARGN}
  EXTRA_LIBS rgw_common ${rgw_libs}
  EXTRA_INCS ${rgw_incs}
  EXTRA_INCS "SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/src/rgw")
@@ -526,6 +528,10 @@ if(WITH_RADOSGW_FDB)
  add_catch2_test_rgw(rgw_hex)
  add_catch2_test_rgw(fdb NO_CATCH2_MAIN)
  add_catch2_test_rgw(fdb_query)
+ add_catch2_test_rgw(d4n_batch NO_CATCH2_MAIN SOURCE d4n/test_batch.cc)
+ add_catch2_test_rgw(d4n_monitor NO_CATCH2_MAIN SOURCE d4n/test_monitor.cc)
+ add_catch2_test_rgw(d4n_monitor_redis NO_CATCH2_MAIN SOURCE d4n/test_monitor.cc)
+ target_compile_definitions(unittest_d4n_monitor_redis PRIVATE D4N_MONITOR_TEST_REDIS)
  add_catch2_test_rgw(fdb_ceph NO_CATCH2_MAIN)
  add_catch2_test_rgw(fdb_content)
 endif()

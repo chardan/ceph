@@ -160,14 +160,22 @@ if(NOT WITH_CATCH2)
 endif()
 
 set(options NO_CATCH2_MAIN)
-set(oneValueArgs)
-set(multiValueArgs EXTRA_LIBS EXTRA_INCS)
+set(oneValueArgs SOURCE)
+set(multiValueArgs EXTRA_LIBS EXTRA_INCS SOURCES)
 
 cmake_parse_arguments(PARSE_ARGV 0 catch2_opt
   "${options}" "${oneValueArgs}" "${multiValueArgs}")
 
+if(DEFINED catch2_opt_SOURCES)
+  set(catch2_sources ${catch2_opt_SOURCES})
+elseif(DEFINED catch2_opt_SOURCE)
+  set(catch2_sources ${catch2_opt_SOURCE})
+else()
+  set(catch2_sources test_${test_name}.cc)
+endif()
+
  add_executable(unittest_${test_name}
- test_${test_name}.cc)
+ ${catch2_sources})
 
 SET(tl_libs
   librados
