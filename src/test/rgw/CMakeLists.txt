@@ -523,12 +523,15 @@ add_ceph_unittest(unittest_rgw_http_client)
 target_link_libraries(unittest_rgw_http_client
   rgw_common ${rgw_libs} ${UNITTEST_LIBS})
 
+add_catch2_test_rgw(d4n_batch SOURCE d4n/test_batch_core.cc)
+add_catch2_test_rgw(d4n_batch_redis SOURCE d4n/test_batch_redis.cc)
+
 if(WITH_RADOSGW_FDB)
  list(APPEND rgw_incs "${CMAKE_BINARY_DIR}/_deps/zpp_bits-src/")
  add_catch2_test_rgw(rgw_hex)
  add_catch2_test_rgw(fdb NO_CATCH2_MAIN)
  add_catch2_test_rgw(fdb_query)
- add_catch2_test_rgw(d4n_batch NO_CATCH2_MAIN SOURCE d4n/test_batch.cc)
+ add_catch2_test_rgw(d4n_batch_fdb NO_CATCH2_MAIN SOURCE d4n/test_batch_fdb.cc)
  add_catch2_test_rgw(d4n_monitor NO_CATCH2_MAIN SOURCE d4n/test_monitor.cc)
  add_catch2_test_rgw(d4n_monitor_redis NO_CATCH2_MAIN SOURCE d4n/test_monitor.cc)
  target_compile_definitions(unittest_d4n_monitor_redis PRIVATE D4N_MONITOR_TEST_REDIS)
