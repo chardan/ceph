@@ -425,6 +425,33 @@ constexpr decltype(auto) core_expression_of(ExprT&& expr)
  return std::forward<ExprT>(expr);
 }
 
+template <typename ExprT>
+struct is_keyspace_bounded : std::false_type {};
+
+template <>
+struct is_keyspace_bounded<interval> : std::true_type {};
+
+template <byte_interval_expression ExprT>
+struct is_keyspace_bounded<configured<ExprT>> : is_keyspace_bounded<ExprT> {};
+
+template <byte_interval_expression LhsT, byte_interval_expression RhsT>
+struct is_keyspace_bounded<core::detail::difference_expr<LhsT, RhsT>>
+ : is_keyspace_bounded<LhsT> {};
+
+template <byte_interval_expression LhsT, byte_interval_expression RhsT>
+struct is_keyspace_bounded<core::detail::intersection_expr<LhsT, RhsT>>
+ : std::bool_constant<is_keyspace_bounded<LhsT>::value ||
+                      is_keyspace_bounded<RhsT>::value> {};
+
+template <byte_interval_expression LhsT, byte_interval_expression RhsT>
+struct is_keyspace_bounded<core::detail::set_union_expr<LhsT, RhsT>>
+ : std::bool_constant<is_keyspace_bounded<LhsT>::value &&
+                      is_keyspace_bounded<RhsT>::value> {};
+
+template <typename ExprT>
+inline constexpr bool is_keyspace_bounded_v =
+ is_keyspace_bounded<std::remove_cvref_t<ExprT>>::value;
+
 template <expression ExprT>
 constexpr auto configure(ExprT&& expr, const query_options& options)
 {
@@ -658,9 +685,16 @@ constexpr std::size_t interval_count(const ExprT& expr)
  return count;
 }
 
+// Relationship predicates are bounded to ordinary FoundationDB keyspace.
+// Common expression shapes are answered structurally; others use the same
+// canonical interval stream as query execution:
 template <expression ExprT>
 constexpr bool is_empty_expression(const ExprT& expr)
 {
+ if constexpr (detail::is_keyspace_bounded_v<ExprT>) {
+  return core::is_empty_expression(detail::core_expression_of(expr));
+ }
+
  return 0 == interval_count(expr);
 }
 
@@ -668,34 +702,41 @@ template <expression ExprT>
 constexpr bool contains(const ExprT& expr, const concepts::libfdb_key auto& key)
 {
  const auto key_view = detail::key_view(key);
- bool found = false;
 
- for_each_interval(expr, [&found, key_view](const interval& x) {
-  if (found) {
-   return;
-  }
+ if (detail::at_or_after_keyspace_limit(key_view)) {
+  return false;
+ }
 
-  found = core::contains(x, key_view);
- });
-
- return found;
-}
-
-template <expression LhsT, expression RhsT>
-constexpr bool is_disjoint(const LhsT& lhs, const RhsT& rhs)
-{
- return is_empty_expression(intersection(lhs, rhs));
+ return core::contains(detail::core_expression_of(expr), key_view);
 }
 
 template <expression LhsT, expression RhsT>
 constexpr bool intersects(const LhsT& lhs, const RhsT& rhs)
 {
- return not is_disjoint(lhs, rhs);
+ if constexpr (detail::is_keyspace_bounded_v<LhsT> &&
+               detail::is_keyspace_bounded_v<RhsT>) {
+  return core::intersects(detail::core_expression_of(lhs),
+                          detail::core_expression_of(rhs));
+ }
+
+ return not is_empty_expression(intersection(lhs, rhs));
+}
+
+template <expression LhsT, expression RhsT>
+constexpr bool is_disjoint(const LhsT& lhs, const RhsT& rhs)
+{
+ return not intersects(lhs, rhs);
 }
 
 template <expression LhsT, expression RhsT>
 constexpr bool encloses(const LhsT& outer, const RhsT& inner)
 {
+ if constexpr (detail::is_keyspace_bounded_v<LhsT> &&
+               detail::is_keyspace_bounded_v<RhsT>) {
+  return core::encloses(detail::core_expression_of(outer),
+                        detail::core_expression_of(inner));
+ }
+
  return is_empty_expression(difference(inner, outer));
 }
 

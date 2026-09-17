@@ -768,6 +768,21 @@ constexpr bool contains(const IntervalT& x, const ValueT& value)
         bounds.upper().allows_before(value);
 }
 
+template <expression LhsT, expression RhsT, typename ValueT>
+requires detail::comparable_value<expression_domain_t<LhsT>, ValueT>
+constexpr bool contains(const detail::difference_expr<LhsT, RhsT>& expression,
+                        const ValueT& value);
+
+template <expression LhsT, expression RhsT, typename ValueT>
+requires detail::comparable_value<expression_domain_t<LhsT>, ValueT>
+constexpr bool contains(const detail::intersection_expr<LhsT, RhsT>& expression,
+                        const ValueT& value);
+
+template <expression LhsT, expression RhsT, typename ValueT>
+requires detail::comparable_value<expression_domain_t<LhsT>, ValueT>
+constexpr bool contains(const detail::set_union_expr<LhsT, RhsT>& expression,
+                        const ValueT& value);
+
 template <expression ExprT, typename ValueT>
 requires (!interval_view<ExprT>) &&
  detail::comparable_value<expression_domain_t<ExprT>, ValueT>
@@ -784,6 +799,33 @@ constexpr bool contains(const ExprT& expression, const ValueT& value)
  });
 
  return found;
+}
+
+template <expression LhsT, expression RhsT, typename ValueT>
+requires detail::comparable_value<expression_domain_t<LhsT>, ValueT>
+constexpr bool contains(const detail::difference_expr<LhsT, RhsT>& expression,
+                        const ValueT& value)
+{
+ return ::ceph::libfdb::interval::contains(expression.lhs, value) &&
+        !::ceph::libfdb::interval::contains(expression.rhs, value);
+}
+
+template <expression LhsT, expression RhsT, typename ValueT>
+requires detail::comparable_value<expression_domain_t<LhsT>, ValueT>
+constexpr bool contains(const detail::intersection_expr<LhsT, RhsT>& expression,
+                        const ValueT& value)
+{
+ return ::ceph::libfdb::interval::contains(expression.lhs, value) &&
+        ::ceph::libfdb::interval::contains(expression.rhs, value);
+}
+
+template <expression LhsT, expression RhsT, typename ValueT>
+requires detail::comparable_value<expression_domain_t<LhsT>, ValueT>
+constexpr bool contains(const detail::set_union_expr<LhsT, RhsT>& expression,
+                        const ValueT& value)
+{
+ return ::ceph::libfdb::interval::contains(expression.lhs, value) ||
+        ::ceph::libfdb::interval::contains(expression.rhs, value);
 }
 
 template <interval_view LhsT, interval_view RhsT>
@@ -1284,9 +1326,24 @@ constexpr std::size_t interval_count(const ExprT& expression)
 }
 
 template <expression ExprT>
+constexpr bool is_empty_expression(const ExprT& expression);
+
+template <expression LhsT, expression RhsT>
+constexpr bool is_empty_expression(
+ const detail::set_union_expr<LhsT, RhsT>& expression)
+{
+ return ::ceph::libfdb::interval::is_empty_expression(expression.lhs) &&
+        ::ceph::libfdb::interval::is_empty_expression(expression.rhs);
+}
+
+template <expression ExprT>
 constexpr bool is_empty_expression(const ExprT& expression)
 {
- return 0 == interval_count(expression);
+ if constexpr (interval_view<ExprT>) {
+  return ::ceph::libfdb::interval::is_empty(expression);
+ }
+
+ return 0 == ::ceph::libfdb::interval::interval_count(expression);
 }
 
 enum struct endpoint_inclusion : std::uint8_t
@@ -1586,23 +1643,80 @@ constexpr auto prefix_starting_after(PrefixT&& prefix_value, CursorT&& cursor)
 
 template <expression LhsT, expression RhsT>
 requires same_expression_domain<LhsT, RhsT>
-constexpr bool is_disjoint(const LhsT& lhs, const RhsT& rhs)
+constexpr bool intersects(const LhsT& lhs, const RhsT& rhs);
+
+template <interval_view LhsT, interval_view RhsT>
+requires same_expression_domain<LhsT, RhsT>
+constexpr bool intersects(const LhsT& lhs, const RhsT& rhs)
 {
- return is_empty_expression(intersection(lhs, rhs));
+ return !::ceph::libfdb::interval::is_empty(
+          ::ceph::libfdb::interval::intersection(lhs, rhs));
+}
+
+template <expression LhsT,
+          expression RhsT,
+          expression OtherLhsT,
+          expression OtherRhsT>
+requires same_expression_domain<LhsT, OtherLhsT>
+constexpr bool intersects(const detail::set_union_expr<LhsT, RhsT>& lhs,
+                          const detail::set_union_expr<OtherLhsT, OtherRhsT>& rhs)
+{
+ return ::ceph::libfdb::interval::intersects(lhs.lhs, rhs) ||
+        ::ceph::libfdb::interval::intersects(lhs.rhs, rhs);
+}
+
+template <expression LhsT, expression RhsT, expression OtherT>
+requires same_expression_domain<LhsT, OtherT>
+constexpr bool intersects(const detail::set_union_expr<LhsT, RhsT>& lhs,
+                          const OtherT& rhs)
+{
+ return ::ceph::libfdb::interval::intersects(lhs.lhs, rhs) ||
+        ::ceph::libfdb::interval::intersects(lhs.rhs, rhs);
+}
+
+template <expression OtherT, expression LhsT, expression RhsT>
+requires same_expression_domain<OtherT, LhsT>
+constexpr bool intersects(const OtherT& lhs,
+                          const detail::set_union_expr<LhsT, RhsT>& rhs)
+{
+ return ::ceph::libfdb::interval::intersects(lhs, rhs.lhs) ||
+        ::ceph::libfdb::interval::intersects(lhs, rhs.rhs);
 }
 
 template <expression LhsT, expression RhsT>
 requires same_expression_domain<LhsT, RhsT>
 constexpr bool intersects(const LhsT& lhs, const RhsT& rhs)
 {
- return !is_disjoint(lhs, rhs);
+ return !::ceph::libfdb::interval::is_empty_expression(
+          ::ceph::libfdb::interval::intersection(lhs, rhs));
+}
+
+template <expression LhsT, expression RhsT>
+requires same_expression_domain<LhsT, RhsT>
+constexpr bool is_disjoint(const LhsT& lhs, const RhsT& rhs)
+{
+ return !::ceph::libfdb::interval::intersects(lhs, rhs);
+}
+
+template <expression LhsT, expression RhsT>
+requires same_expression_domain<LhsT, RhsT>
+constexpr bool encloses(const LhsT& outer, const RhsT& inner);
+
+template <expression OuterT, expression LhsT, expression RhsT>
+requires same_expression_domain<OuterT, LhsT>
+constexpr bool encloses(const OuterT& outer,
+                        const detail::set_union_expr<LhsT, RhsT>& inner)
+{
+ return ::ceph::libfdb::interval::encloses(outer, inner.lhs) &&
+        ::ceph::libfdb::interval::encloses(outer, inner.rhs);
 }
 
 template <expression LhsT, expression RhsT>
 requires same_expression_domain<LhsT, RhsT>
 constexpr bool encloses(const LhsT& outer, const RhsT& inner)
 {
- return is_empty_expression(difference(inner, outer));
+ return ::ceph::libfdb::interval::is_empty_expression(
+          ::ceph::libfdb::interval::difference(inner, outer));
 }
 
 } // namespace ceph::libfdb::interval
