@@ -377,6 +377,44 @@ public:
   virtual std::unique_ptr<Transaction> create_transaction(const DoutPrefixProvider* dpp) = 0;
 };
 
+template <typename CreateTransaction, typename Operation>
+int retry_fdb_transaction(
+    const DoutPrefixProvider* dpp,
+    optional_yield y,
+    CreateTransaction&& create_transaction,
+    Operation&& operation,
+    unsigned max_attempts = 5)
+{
+  for (unsigned attempt = 1; attempt <= max_attempts; ++attempt) {
+    auto txn = create_transaction();
+
+    int ret = operation(*txn);
+
+    if (ret < 0) {
+      if (ret == -EAGAIN) {
+        ldpp_dout(dpp, 10) << __func__ << "(): Transaction operation returned EAGAIN; retrying attempt " << attempt << "/" << max_attempts << dendl;
+        txn->abort(dpp, y);
+        continue;
+      }
+
+      txn->abort(dpp, y);
+      return ret;
+    }
+
+    ret = txn->commit(dpp, y);
+
+    if (ret == -EAGAIN) {
+      ldpp_dout(dpp, 10) << __func__ << "(): Transaction commit returned EAGAIN; retrying attempt " << attempt << "/" << max_attempts << dendl;
+      continue;
+    }
+
+    return ret;
+  }
+
+  ldpp_dout(dpp, 0) << __func__ << "(): Transaction failed after " << max_attempts << " attempts" << dendl;
+  return -EAGAIN;
+}
+
 class Directory {
 public:
     Directory() = default;
