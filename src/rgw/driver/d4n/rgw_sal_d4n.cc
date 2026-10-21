@@ -2075,7 +2075,13 @@ int D4NFilterObject::check_head_exists_in_cache_get_oid(const DoutPrefixProvider
         this->lease_token = uuid;
 
         // Acquire the lease
-        int rc = lease->acquire(dpp, this->lease_resource, this->lease_holder, this->lease_token, D4N_LEASE_TTL_NANOSECONDS);
+	int rc;
+
+	if (txn) {
+	  rc = lease->acquire(dpp, this->lease_resource, this->lease_holder, this->lease_token, D4N_LEASE_TTL_NANOSECONDS, txn->get());
+	} else {
+	  rc = lease->acquire(dpp, this->lease_resource, this->lease_holder, this->lease_token, D4N_LEASE_TTL_NANOSECONDS);
+	}
         if (rc < 0) {
           ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
                             << " failed to acquire lease: rc=" << rc

@@ -21,6 +21,8 @@ using boost::redis::request;
 using boost::redis::response;
 using boost::redis::ignore_t;
 
+class Transaction;
+
 inline int check_bool(std::string_view str) {
   if (str == "true" || str == "1") {
     return 1;
@@ -203,6 +205,13 @@ class Lease {
                         const std::string& holder_id,
                         const std::string& token,
                         uint64_t ttl_nanoseconds) = 0;
+
+    virtual int acquire(const DoutPrefixProvider* dpp,
+    		        const std::string& resource_name,
+	                const std::string& holder_id,
+            		const std::string& token,
+            		uint64_t ttl_nanoseconds,
+            		Transaction& txn) = 0;
 
     // Renew an existing lease
     //

@@ -82,6 +82,13 @@ public:
                 const std::string& token,
                 uint64_t ttl_nanoseconds) override;
 
+    int acquire(const DoutPrefixProvider* dpp,
+            	const std::string& resource_name,
+            	const std::string& holder_id,
+            	const std::string& token,
+            	uint64_t ttl_nanoseconds,
+            	Transaction& txn) override;
+
     int renew(const DoutPrefixProvider* dpp,
               const std::string& resource_name,
               const std::string& holder_id,
