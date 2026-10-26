@@ -17,7 +17,7 @@ int LFUDAPolicy::age_sync(const DoutPrefixProvider* dpp, optional_yield y)
 {
   int synced_age = age;
 
-  int ret = retry_fdb_transaction(
+  auto result = retry_transaction(
       dpp,
       y,
       [this, dpp]() {
@@ -45,8 +45,37 @@ int LFUDAPolicy::age_sync(const DoutPrefixProvider* dpp, optional_yield y)
         return 0;
       });
 
-  if (ret < 0) {
-    return ret;
+  switch (result.status)
+  {
+      case TransactionStatus::success:
+        break;
+
+      case TransactionStatus::retryable_not_committed:
+        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
+                          << "(): Transaction remains retryable, ret="
+                          << result.error
+                          << ", error=" << result.directory_error << dendl;
+        return result.error < 0 ? result.error : -EAGAIN;
+
+      case TransactionStatus::uncertain:
+        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
+                          << "(): Transaction commit outcome is uncertain; error="
+                          << result.directory_error << dendl;
+        //FIXME: Do not blindly retry. The caller must resolve whether the commit took effect.
+        return -EIO;
+
+      case TransactionStatus::retries_exhausted:
+        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
+                          << "(): Transaction retry budget exhausted, ret="
+                          << result.error << dendl;
+        return result.error < 0 ? result.error : -EAGAIN;
+
+      case TransactionStatus::failed:
+        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
+                          << "(): Batch transaction failed, ret="
+                          << result.error
+                          << ", error=" << result.directory_error << dendl;
+        return result.error < 0 ? result.error : -EIO;
   }
 
   age = synced_age;
@@ -58,7 +87,7 @@ int LFUDAPolicy::local_weight_sync(const DoutPrefixProvider* dpp, optional_yield
   float synced_weight_sum = weightSum;
   float synced_posted_sum = postedSum;
 
-  int ret = retry_fdb_transaction(
+  auto result = retry_transaction(
       dpp,
       y,
       [this, dpp]() {
@@ -112,8 +141,37 @@ int LFUDAPolicy::local_weight_sync(const DoutPrefixProvider* dpp, optional_yield
             std::ref(txn));
       });
 
-  if (ret < 0) {
-    return ret;
+  switch (result.status)
+  {
+      case TransactionStatus::success:
+        break;
+
+      case TransactionStatus::retryable_not_committed:
+        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
+                          << "(): Transaction remains retryable, ret="
+                          << result.error
+                          << ", error=" << result.directory_error << dendl;
+        return result.error < 0 ? result.error : -EAGAIN;
+
+      case TransactionStatus::uncertain:
+        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
+                          << "(): Transaction commit outcome is uncertain; error="
+                          << result.directory_error << dendl;
+        //FIXME: Do not blindly retry. The caller must resolve whether the commit took effect.
+        return -EIO;
+
+      case TransactionStatus::retries_exhausted:
+        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
+                          << "(): Transaction retry budget exhausted, ret="
+                          << result.error << dendl;
+        return result.error < 0 ? result.error : -EAGAIN;
+
+      case TransactionStatus::failed:
+        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
+                          << "(): Batch transaction failed, ret="
+                          << result.error
+                          << ", error=" << result.directory_error << dendl;
+        return result.error < 0 ? result.error : -EIO;
   }
 
   weightSum = synced_weight_sum;
@@ -313,7 +371,7 @@ int LFUDAPolicy::init(CephContext* cct, const DoutPrefixProvider* dpp, asio::io_
     return -EINVAL;
   }
 
-  int ret = retry_fdb_transaction(
+  auto result = retry_transaction(
       dpp,
       y,
       [txn_factory, dpp]() {
@@ -337,10 +395,37 @@ int LFUDAPolicy::init(CephContext* cct, const DoutPrefixProvider* dpp, asio::io_
             dpp, y, "lfuda", "age", std::to_string(age), std::ref(txn));
       });
 
-  if (ret < 0) {
-    ldpp_dout(dpp, 0) << "LFUDAPolicy::init(): failed to initialize transaction data, ret="
-                      << ret << dendl;
-    return ret;
+  switch (result.status)
+  {
+      case TransactionStatus::success:
+        break;
+
+      case TransactionStatus::retryable_not_committed:
+        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
+                          << "(): Transaction remains retryable, ret="
+                          << result.error
+                          << ", error=" << result.directory_error << dendl;
+        return result.error < 0 ? result.error : -EAGAIN;
+
+      case TransactionStatus::uncertain:
+        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
+                          << "(): Transaction commit outcome is uncertain; error="
+                          << result.directory_error << dendl;
+        //FIXME: Do not blindly retry. The caller must resolve whether the commit took effect.
+        return -EIO;
+
+      case TransactionStatus::retries_exhausted:
+        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
+                          << "(): Transaction retry budget exhausted, ret="
+                          << result.error << dendl;
+        return result.error < 0 ? result.error : -EAGAIN;
+
+      case TransactionStatus::failed:
+        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
+                          << "(): Batch transaction failed, ret="
+                          << result.error
+                          << ", error=" << result.directory_error << dendl;
+        return result.error < 0 ? result.error : -EIO;
   }
 
   asio::co_spawn(io_context.get_executor(),
@@ -1094,7 +1179,7 @@ int LFUDAPolicy::do_delete(const DoutPrefixProvider* dpp, LFUDAObjEntry* e, int 
       return -EINVAL;
     }
 
-    ret = retry_fdb_transaction(
+    auto result = retry_transaction(
         dpp,
         y,
         [txn_factory, dpp]() {
@@ -1104,10 +1189,37 @@ int LFUDAPolicy::do_delete(const DoutPrefixProvider* dpp, LFUDAObjEntry* e, int 
           return delete_head_blocks(txn);
         });
 
-    if (ret < 0) {
-      ldpp_dout(dpp, 0) << "Failed to complete transaction for HEAD block cleanup, ret="
-                        << ret << dendl;
-      return ret;
+    switch (result.status)
+    {
+      case TransactionStatus::success:
+        break;
+
+      case TransactionStatus::retryable_not_committed:
+        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
+                          << "(): Transaction remains retryable, ret="
+                          << result.error
+                          << ", error=" << result.directory_error << dendl;
+        return result.error < 0 ? result.error : -EAGAIN;
+
+      case TransactionStatus::uncertain:
+        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
+                          << "(): Transaction commit outcome is uncertain; error="
+                          << result.directory_error << dendl;
+        //FIXME: Do not blindly retry. The caller must resolve whether the commit took effect.
+        return -EIO;
+
+      case TransactionStatus::retries_exhausted:
+        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
+                          << "(): Transaction retry budget exhausted, ret="
+                          << result.error << dendl;
+        return result.error < 0 ? result.error : -EAGAIN;
+
+      case TransactionStatus::failed:
+        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
+                          << "(): Batch transaction failed, ret="
+                          << result.error
+                          << ", error=" << result.directory_error << dendl;
+        return result.error < 0 ? result.error : -EIO;
     }
 
     ret = cacheDriver->delete_data(dpp, e->key, y);
@@ -1180,7 +1292,7 @@ int LFUDAPolicy::do_delete(const DoutPrefixProvider* dpp, LFUDAObjEntry* e, int 
 
     std::string local_addr = dpp->get_cct()->_conf->rgw_d4n_local_rgw_address;
 
-    ret = retry_fdb_transaction(
+    auto result = retry_transaction(
         dpp,
         y,
         [txn_factory, dpp]() {
@@ -1233,11 +1345,41 @@ int LFUDAPolicy::do_delete(const DoutPrefixProvider* dpp, LFUDAObjEntry* e, int 
           return delete_head_blocks(txn);
         });
 
-    if (ret < 0) {
-      ldpp_dout(dpp, 0) << "Failed to complete transaction for directory cleanup, ret="
-                        << ret << dendl;
-      return ret;
+    switch (result.status)
+    {
+      case TransactionStatus::success:
+        break;
+
+      case TransactionStatus::retryable_not_committed:
+        // This should normally be handled inside retry_transaction().
+        // If it reaches the caller, the transaction was not committed.
+        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
+                          << "(): Transaction remains retryable, ret="
+                          << result.error
+                          << ", error=" << result.directory_error << dendl;
+        return result.error < 0 ? result.error : -EAGAIN;
+
+      case TransactionStatus::uncertain:
+        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
+                          << "(): Transaction commit outcome is uncertain; error="
+                          << result.directory_error << dendl;
+        //FIXME: Do not blindly retry. The caller must resolve whether the commit took effect.
+        return -EIO;
+
+      case TransactionStatus::retries_exhausted:
+        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
+                          << "(): Transaction retry budget exhausted, ret="
+                          << result.error << dendl;
+        return result.error < 0 ? result.error : -EAGAIN;
+
+      case TransactionStatus::failed:
+        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
+                          << "(): Batch transaction failed, ret="
+                          << result.error
+                          << ", error=" << result.directory_error << dendl;
+        return result.error < 0 ? result.error : -EIO;
     }
+
   }
 
   // Step 2: delete the local cache data blocks and their policy entries.

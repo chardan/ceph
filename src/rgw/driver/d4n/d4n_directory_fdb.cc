@@ -565,6 +565,51 @@ inline void report_fdb_error(
       e.what());
 }
 
+TransactionResult FDBTransaction::commit_with_outcome(const DoutPrefixProvider* dpp, optional_yield y)
+{
+  if (executed_) {
+    return {TransactionStatus::failed, -EINVAL, 0};
+  }
+
+  try {
+    const lfdb::commit_result result = lfdb::commit(lfdb::with_result, txn_);
+    executed_ = true;
+
+    if (result.committed) {
+      return {TransactionStatus::success, 0, 0};
+    }
+
+    const auto error = result.replay_error;
+
+    ldpp_dout(dpp, 10) << "FDBTransaction::" << __func__ << "() commit failed; FoundationDB error: " << error << dendl;
+
+    if (fdb_error_predicate(FDB_ERROR_PREDICATE_MAYBE_COMMITTED, error)) {
+      return {TransactionStatus::uncertain, -EIO, error};
+    }
+
+    if (fdb_error_predicate(FDB_ERROR_PREDICATE_RETRYABLE_NOT_COMMITTED, error)) {
+      return {TransactionStatus::retryable_not_committed, -EAGAIN, error};
+    }
+
+    return {TransactionStatus::failed, -EIO, error};
+  } catch (const lfdb::libfdb_exception& e) {
+    executed_ = true;
+
+    const auto error = e.fdb_error_value;
+
+    ldpp_dout(dpp, 0) << "FDBTransaction::" << __func__ << "() ERROR: " << e.what() << dendl;
+
+    if (fdb_error_predicate(FDB_ERROR_PREDICATE_MAYBE_COMMITTED, error)) {
+      return {TransactionStatus::uncertain, -EIO, error};
+    }
+
+    if (fdb_error_predicate(FDB_ERROR_PREDICATE_RETRYABLE_NOT_COMMITTED, error)) {
+      return {TransactionStatus::retryable_not_committed, -EAGAIN, error};
+    }
+
+    return {TransactionStatus::failed, -EIO, error};
+  }
+}
 
 int FDBTransaction::commit(const DoutPrefixProvider* dpp, optional_yield y)
 {

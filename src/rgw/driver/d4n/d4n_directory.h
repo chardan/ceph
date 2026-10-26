@@ -371,11 +371,41 @@ struct CacheBlock {
   /* Blocks use the cacheObj's dirty and hostsList metadata to store their dirty flag values and locations in the block directory. */
 };
 
+enum class TransactionStatus {
+  success,
+  retryable_not_committed,
+  uncertain,
+  failed,
+  retries_exhausted
+};
+
+struct TransactionResult {
+  TransactionStatus status;
+  int error = 0;
+  int directory_error = 0;
+};
 
 //Used for Batching/Transaction in Directory
 class Transaction {
 public:
   virtual ~Transaction() = default;
+
+
+  virtual TransactionResult commit_with_outcome(const DoutPrefixProvider* dpp, optional_yield y)
+  {
+    const int ret = commit(dpp, y);
+
+    if (ret == 0) {
+      return {TransactionStatus::success, 0, 0};
+    }
+
+    if (ret == -EAGAIN) {
+      return {TransactionStatus::retryable_not_committed, ret, 0};
+    }
+
+    return {TransactionStatus::failed, ret, 0};
+  }
+
   virtual int commit(const DoutPrefixProvider* dpp, optional_yield y) = 0;
   virtual int abort(const DoutPrefixProvider* dpp, optional_yield y) = 0;
 };
@@ -386,42 +416,53 @@ public:
   virtual std::unique_ptr<Transaction> create_transaction(const DoutPrefixProvider* dpp) = 0;
 };
 
+
+
 template <typename CreateTransaction, typename Operation>
-int retry_fdb_transaction(
-    const DoutPrefixProvider* dpp,
-    optional_yield y,
-    CreateTransaction&& create_transaction,
-    Operation&& operation,
-    unsigned max_attempts = 5)
+TransactionResult retry_transaction(const DoutPrefixProvider* dpp, optional_yield y, CreateTransaction&& create_transaction, Operation&& operation, unsigned max_attempts = 5)
 {
   for (unsigned attempt = 1; attempt <= max_attempts; ++attempt) {
     auto txn = create_transaction();
 
-    int ret = operation(*txn);
+    const int ret = operation(*txn);
 
     if (ret < 0) {
+      txn->abort(dpp, y);
+
       if (ret == -EAGAIN) {
-        ldpp_dout(dpp, 10) << __func__ << "(): Transaction operation returned EAGAIN; retrying attempt " << attempt << "/" << max_attempts << dendl;
-        txn->abort(dpp, y);
+        ldpp_dout(dpp, 10) << __func__ << "(): Operation returned EAGAIN; retrying attempt " << attempt << "/" << max_attempts << dendl;
         continue;
       }
 
-      txn->abort(dpp, y);
-      return ret;
+      return {TransactionStatus::failed, ret, 0};
     }
 
-    ret = txn->commit(dpp, y);
+    const auto outcome = txn->commit_with_outcome(dpp, y);
 
-    if (ret == -EAGAIN) {
-      ldpp_dout(dpp, 10) << __func__ << "(): Transaction commit returned EAGAIN; retrying attempt " << attempt << "/" << max_attempts << dendl;
+    switch (outcome.status) {
+    case TransactionStatus::success:
+      return {TransactionStatus::success, 0, 0};
+
+    case TransactionStatus::retryable_not_committed:
+      ldpp_dout(dpp, 10) << __func__ << "(): Commit definitely not committed; retrying attempt " << attempt << "/" << max_attempts << dendl;
       continue;
-    }
 
-    return ret;
+    case TransactionStatus::uncertain:
+      ldpp_dout(dpp, 0) << __func__ << "(): Commit outcome uncertain; not retrying automatically" << dendl;
+      return {TransactionStatus::uncertain, outcome.error, outcome.directory_error};
+
+    case TransactionStatus::retries_exhausted:
+      ldpp_dout(dpp, 0) << __func__ << "(): Transaction retry budget exhausted" << dendl;
+      return {TransactionStatus::retries_exhausted, outcome.error < 0 ? outcome.error : -EAGAIN, outcome.directory_error};
+
+    case TransactionStatus::failed:
+      return {TransactionStatus::failed, outcome.error, outcome.directory_error};
+    }
   }
 
   ldpp_dout(dpp, 0) << __func__ << "(): Transaction failed after " << max_attempts << " attempts" << dendl;
-  return -EAGAIN;
+
+  return {TransactionStatus::retries_exhausted, -EAGAIN, 0};
 }
 
 class Directory {

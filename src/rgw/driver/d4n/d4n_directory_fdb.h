@@ -50,12 +50,14 @@ struct FDBRange {
 // Otherwise we have to change the architecture to be thread safe including "executed_" member variable.
 class FDBTransaction : public Transaction {
 public:
+
   explicit FDBTransaction(lfdb::database_handle db) : txn_(lfdb::make_transaction(db)) {}
 
   ~FDBTransaction() override = default;
 
   lfdb::transaction_handle& get_transaction() { return txn_; }
 
+  TransactionResult commit_with_outcome(const DoutPrefixProvider* dpp, optional_yield y) override;
   int commit(const DoutPrefixProvider* dpp, optional_yield y) override;
   int abort(const DoutPrefixProvider* dpp, optional_yield y) override;
 
