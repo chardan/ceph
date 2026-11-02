@@ -732,38 +732,14 @@ int D4NFilterBucket::list(const DoutPrefixProvider* dpp, ListParams& params, int
             return 0;
           });
 
-      switch (result.status) {
-      case TransactionStatus::success:
-        break;
+      const int ret = handle_transaction_result(dpp, "D4NFilterBucket", __func__, result, [](const TransactionResult&) {
+	// Uncertain results. We depend on the backend now.
+      	return -EIO;
+      });
 
-      case TransactionStatus::retryable_not_committed:
-        // This should normally be handled inside retry_transaction().
-        // If it reaches the caller, the transaction was not committed.
-        ldpp_dout(dpp, 0) << "D4NFilterBucket::" << __func__
-                          << "(): Transaction remains retryable, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::uncertain:
-        ldpp_dout(dpp, 0) << "D4NFilterBucket::" << __func__
-                          << "(): Transaction commit outcome is uncertain; error="
-                          << result.directory_error << dendl;
-        //FIXME: Do not blindly retry. The caller must resolve whether the commit took effect.
-        return -EIO;
-
-      case TransactionStatus::retries_exhausted:
-        ldpp_dout(dpp, 0) << "D4NFilterBucket::" << __func__
-                          << "(): Transaction retry budget exhausted, ret="
-                          << result.error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::failed:
-        ldpp_dout(dpp, 0) << "D4NFilterBucket::" << __func__
-                          << "(): Batch transaction failed, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EIO;
+      //directory list has failed, getting results from the backend.
+      if (ret < 0) {
+	break;
       }
 
       // Preserve the original pagination behavior for empty pages.
@@ -1185,40 +1161,16 @@ int D4NFilterObject::copy_object(const ACLOwner& owner,
       },
       [d4n_dest_object, dpp, y, &baseAttrs, dirty](rgw::d4n::Transaction& txn) -> int {
         return d4n_dest_object->set_head_block_dir_entry(dpp, y, baseAttrs, true, dirty, std::ref(txn));
-      });
+  });
 
-  switch (result.status) {
-      case TransactionStatus::success:
-        break;
 
-      case TransactionStatus::retryable_not_committed:
-        // This should normally be handled inside retry_transaction().
-        // If it reaches the caller, the transaction was not committed.
-        ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                          << "(): Transaction remains retryable, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
+  const int ret = handle_transaction_result(dpp, "D4NFilterObject", __func__, result, [](const TransactionResult&) {
+    //Uncertain results. The caller should make sure the object is copied.
+    return -EIO;
+  });
 
-      case TransactionStatus::uncertain:
-        ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                          << "(): Transaction commit outcome is uncertain; error="
-                          << result.directory_error << dendl;
-        //FIXME: Do not blindly retry. The caller must resolve whether the commit took effect.
-        return -EIO;
-
-      case TransactionStatus::retries_exhausted:
-        ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                          << "(): Transaction retry budget exhausted, ret="
-                          << result.error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::failed:
-        ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                          << "(): Batch transaction failed, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EIO;
+  if (ret < 0) {
+    return ret;
   }
 
   baseAttrs.erase(RGW_CACHE_ATTR_MTIME);
@@ -1353,41 +1305,10 @@ int D4NFilterObject::set_obj_attrs(const DoutPrefixProvider* dpp, Attrs* setattr
         return 0;
       });
 
-  switch (result.status) {
-      case TransactionStatus::success:
-        break;
-
-      case TransactionStatus::retryable_not_committed:
-        // This should normally be handled inside retry_transaction().
-        // If it reaches the caller, the transaction was not committed.
-        ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                          << "(): Transaction remains retryable, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::uncertain:
-        ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                          << "(): Transaction commit outcome is uncertain; error="
-                          << result.directory_error << dendl;
-        //FIXME: Do not blindly retry. The caller must resolve whether the commit took effect.
-        return -EIO;
-
-      case TransactionStatus::retries_exhausted:
-        ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                          << "(): Transaction retry budget exhausted, ret="
-                          << result.error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::failed:
-        ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                          << "(): Batch transaction failed, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EIO;
-  }
-
-  int ret = result.error;
+  int ret = handle_transaction_result(dpp, "D4NFilterObject", __func__, result, [](const TransactionResult&) {
+    //Uncertain results. FIXME: The caller should make sure the object is copied.
+    return -EIO;
+  });
 
   if (ret == -ECANCELED && missing_head_action != MissingHeadAction::NONE) {
     if (missing_head_action == MissingHeadAction::NOOP) {
@@ -2048,39 +1969,13 @@ int D4NFilterObject::set_data_block_dir_entries(const DoutPrefixProvider* dpp, o
         return 0;
       });
 
-  switch (result.status) {
-      case TransactionStatus::success:
-        break;
+  const int ret = handle_transaction_result(dpp, "D4NFilterWriter", __func__, result, [](const TransactionResult&) {
+    /* FIXME: Uncertain results. We should make sure the block is set or not.
+       if not, do we have to call delete and set block functions? Wouldn't this create an infinite loop? */
+    return -EIO;
+  });
 
-      case TransactionStatus::retryable_not_committed:
-        // This should normally be handled inside retry_transaction().
-        // If it reaches the caller, the transaction was not committed.
-        ldpp_dout(dpp, 0) << "D4NFilterWriter::" << __func__
-                          << "(): Transaction remains retryable, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::uncertain:
-        ldpp_dout(dpp, 0) << "D4NFilterWriter::" << __func__
-                          << "(): Transaction commit outcome is uncertain; error="
-                          << result.directory_error << dendl;
-        //FIXME: Do not blindly retry. The caller must resolve whether the commit took effect.
-        return -EIO;
-
-      case TransactionStatus::retries_exhausted:
-        ldpp_dout(dpp, 0) << "D4NFilterWriter::" << __func__
-                          << "(): Transaction retry budget exhausted, ret="
-                          << result.error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::failed:
-        ldpp_dout(dpp, 0) << "D4NFilterWriter::" << __func__
-                          << "(): Batch transaction failed, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EIO;
-  }
+  return ret;
 }
 
 int D4NFilterObject::delete_cache_entry(const DoutPrefixProvider* dpp, const std::string key, optional_yield y) {
@@ -2307,39 +2202,11 @@ int D4NFilterObject::get_obj_attrs(optional_yield y, const DoutPrefixProvider* d
           return this->set_head_block_dir_entry(dpp, y, attrs, is_latest_version, false, std::ref(txn));
         });
 
-    switch (result.status) {
-      case TransactionStatus::success:
-        break;
-
-      case TransactionStatus::retryable_not_committed:
-        // This should normally be handled inside retry_transaction().
-        // If it reaches the caller, the transaction was not committed.
-        ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                          << "(): Transaction remains retryable, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::uncertain:
-        ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                          << "(): Transaction commit outcome is uncertain; error="
-                          << result.directory_error << dendl;
-        //FIXME: Do not blindly retry. The caller must resolve whether the commit took effect.
-        return -EIO;
-
-      case TransactionStatus::retries_exhausted:
-        ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                          << "(): Transaction retry budget exhausted, ret="
-                          << result.error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::failed:
-        ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                          << "(): Batch transaction failed, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EIO;
-    }
+    /* Since reading from the backend is successful,
+    in case of a failure of the populating cache, we just log the error and don't return. */
+    ret = handle_transaction_result(dpp, "D4NFilterObject", __func__, result, [](const TransactionResult&) {
+      return 0;
+    });
 
     return 0;
   } else {
@@ -2401,41 +2268,10 @@ int D4NFilterObject::modify_obj_attrs(const char* attr_name, bufferlist& attr_va
         return -ECANCELED;
       });
 
-  switch (result.status) {
-      case TransactionStatus::success:
-        break;
-
-      case TransactionStatus::retryable_not_committed:
-        // This should normally be handled inside retry_transaction().
-        // If it reaches the caller, the transaction was not committed.
-        ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                          << "(): Transaction remains retryable, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::uncertain:
-        ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                          << "(): Transaction commit outcome is uncertain; error="
-                          << result.directory_error << dendl;
-        //FIXME: Do not blindly retry. The caller must resolve whether the commit took effect.
-        return -EIO;
-
-      case TransactionStatus::retries_exhausted:
-        ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                          << "(): Transaction retry budget exhausted, ret="
-                          << result.error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::failed:
-        ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                          << "(): Batch transaction failed, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EIO;
-  }
-
-  int ret = result.error;
+  int ret = handle_transaction_result(dpp, "D4NFilterObject", __func__, result, [](const TransactionResult&) {
+    //FIXME: In case of uncertain, what should be done?
+    return -EIO;
+  });
 
   if (ret == -ECANCELED && missing_head_action != MissingHeadAction::NONE) {
     if (missing_head_action == MissingHeadAction::NOOP) {
@@ -2501,32 +2337,27 @@ int D4NFilterObject::delete_obj_attrs(const DoutPrefixProvider* dpp, const char*
         return set_ret;
       });
 
-  if (result.status == TransactionStatus::uncertain) {
-    ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                      << "(): Transaction outcome is uncertain, error="
-                      << result.error
-                      << ", backend error=" << result.directory_error << dendl;
-    return result.error < 0 ? result.error : -EIO;
-  }
 
-  if (result.status == TransactionStatus::retries_exhausted) {
-    ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                      << "(): Transaction retry budget exhausted, error="
-                      << result.error
-                      << ", backend error=" << result.directory_error << dendl;
-    return result.error < 0 ? result.error : -EAGAIN;
-  }
+  int ret = handle_transaction_result(dpp, "D4NFilterObject", __func__, result, [](const TransactionResult&) {
+    //In case of uncertain, the caller should decide what to do next.
+    return -EIO;
+  });
 
-  if (result.status == TransactionStatus::failed ||
-      result.status == TransactionStatus::retryable_not_committed) {
-    const int ret = result.error < 0 ? result.error : -EIO;
-
-    if (ret != -ECANCELED) {
-      ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                        << "(): Transaction failed, ret=" << ret
-                        << ", backend error=" << result.directory_error << dendl;
+  if (ret == -ECANCELED) {
+    if (missing_head_action == MissingHeadAction::BACKEND) {
+      ret = next->delete_obj_attrs(dpp, attr_name, y);
+      if (ret < 0) {
+        ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
+                        << "(): delete_obj_attrs method of backend store failed with ret: "
+                        << ret << dendl;
+      }
       return ret;
     }
+  } else {
+    ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
+                    << "(): Transaction failed, ret=" << ret
+                    << ", backend error=" << result.directory_error << dendl;
+    return ret;
   }
 
   return 0;
@@ -2663,22 +2494,13 @@ int D4NFilterObject::D4NFilterReadOp::prepare(optional_yield y, const DoutPrefix
         });
 
     if (result.status != TransactionStatus::success) {
-      ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                        << "(): set_head_block_dir_entry method failed for head object, status="
-                        << static_cast<int>(result.status)
-                        << ", ret=" << result.error
-                        << ", backend error=" << result.directory_error << dendl;
+      int ret_txn = handle_transaction_result(dpp, "D4NFilterObject", __func__, result, [](const TransactionResult&) {
+        //FIXME: In case of uncertain, what should be done?
+        return -EIO;
+      });
 
-      if (result.status == TransactionStatus::uncertain) {
-        //FIXME: caller should decide to retry or not.
-        return result.error < 0 ? result.error : -EIO;
-      }
-
-      if (result.status == TransactionStatus::retries_exhausted) {
-        return result.error < 0 ? result.error : -EAGAIN;
-      }
-
-      return result.error < 0 ? result.error : -EIO;
+      if (ret_txn < 0)
+        return ret_txn;
     }
   } else {
     /*
@@ -2944,7 +2766,7 @@ int D4NFilterObject::D4NFilterReadOp::flush(const DoutPrefixProvider* dpp, rgw::
                 ldpp_dout(dpp, 20) << "D4NFilterObject::flush BlockDirectory transaction failed with status: "
                                    << static_cast<int>(result.status)
                                    << ", ret: " << result.error
-                                   << ", backend error: " << result.directory_error << dendl;
+                                   << ", error: " << result.directory_error << dendl;
               } else {
                 ret = 0;
               }
@@ -3616,39 +3438,14 @@ int D4NFilterObject::D4NFilterReadOp::D4NFilterGetCB::handle_data(bufferlist& bl
             return 0;
           });
 
-      switch (result.status) {
-      case TransactionStatus::success:
-        break;
-
-      case TransactionStatus::retryable_not_committed:
-        // This should normally be handled inside retry_transaction().
-        // If it reaches the caller, the transaction was not committed.
-        ldpp_dout(this->dpp, 0) << "D4NFilterWriter::" << __func__
-                               << "(): Transaction remains retryable, ret="
-                               << result.error
-                               << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::uncertain:
-        ldpp_dout(this->dpp, 0) << "D4NFilterWriter::" << __func__
-                               << "(): Transaction commit outcome is uncertain; error="
-                               << result.directory_error << dendl;
-        // FIXME: Do not blindly retry. The caller must resolve whether the commit took effect.
+      int ret_txn = handle_transaction_result(dpp, "D4NFilterWriter", __func__, result, [](const TransactionResult&) {
+        //FIXME: In case of uncertain, what should be done?
         return -EIO;
+      });
 
-      case TransactionStatus::retries_exhausted:
-        ldpp_dout(this->dpp, 0) << "D4NFilterWriter::" << __func__
-                               << "(): Transaction retry budget exhausted, ret="
-                               << result.error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
+      if (ret_txn < 0)
+        return ret_txn;
 
-      case TransactionStatus::failed:
-        ldpp_dout(this->dpp, 0) << "D4NFilterWriter::" << __func__
-                               << "(): BlockDirectory transaction failed, ret="
-                               << result.error
-                               << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EIO;
-      }
     } // if last_part
   }//if write_to_cache
 
@@ -4059,38 +3856,15 @@ int D4NFilterObject::D4NFilterDeleteOp::delete_obj(const DoutPrefixProvider* dpp
         return 0;
       });
 
-  switch (txn_result.status) {
-  case TransactionStatus::success:
-    break;
-
-  case TransactionStatus::retryable_not_committed:
-    ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                      << "(): Transaction remains retryable, ret="
-                      << txn_result.error
-                      << ", error=" << txn_result.directory_error << dendl;
-    return txn_result.error < 0 ? txn_result.error : -EAGAIN;
-
-  case TransactionStatus::uncertain:
-    ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                      << "(): Transaction commit outcome is uncertain; error="
-                      << txn_result.directory_error << dendl;
-    // FIXME: Resolve whether the commit took effect before attempting a retry.
+  int ret_txn = handle_transaction_result(dpp, "D4NFilterObject", __func__, txn_result, [](const TransactionResult&) {
+    /* In case of uncertain, if we retry, we may endup of having another delete marker. 
+    the caller should decide what is the best solution here. */
     return -EIO;
+  });
 
-  case TransactionStatus::retries_exhausted:
-    ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                      << "(): Transaction retry budget exhausted, ret="
-                      << txn_result.error << dendl;
-    return txn_result.error < 0 ? txn_result.error : -EAGAIN;
-
-  case TransactionStatus::failed:
-    ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__
-                      << "(): Directory transaction failed, ret="
-                      << txn_result.error
-                      << ", error=" << txn_result.directory_error << dendl;
-    return txn_result.error < 0 ? txn_result.error : -EIO;
-  }
-
+  if (ret_txn < 0)
+    return ret_txn;
+    
   if (head_missing) {
     ldpp_dout(dpp, 10) << "D4NFilterObject::" << __func__ << "(): head object not found; calling next->delete_obj" << dendl;
     next->params = params;
@@ -4248,39 +4022,13 @@ int D4NFilterWriter::prepare(optional_yield y)
               return 0;
             });
 
-        switch (result.status) {
-        case TransactionStatus::success:
-          break;
-
-        case TransactionStatus::retryable_not_committed:
-          // This should normally be handled inside retry_transaction().
-          // If it reaches the caller, the transaction was not committed.
-          ldpp_dout(this->dpp, 0) << "D4NFilterWriter::" << __func__
-                                 << "(): Transaction remains retryable, ret="
-                                 << result.error
-                                 << ", error=" << result.directory_error << dendl;
-          return result.error < 0 ? result.error : -EAGAIN;
-
-        case TransactionStatus::uncertain:
-          ldpp_dout(this->dpp, 0) << "D4NFilterWriter::" << __func__
-                                 << "(): Transaction commit outcome is uncertain; error="
-                                 << result.directory_error << dendl;
-          // FIXME: Do not blindly retry. The caller must resolve whether the commit took effect.
+        int ret_txn = handle_transaction_result(dpp, "D4NFilterWriter", __func__, result, [](const TransactionResult&) {
+          //FIXME: In case of uncertain, what should be done?
           return -EIO;
+        });
 
-        case TransactionStatus::retries_exhausted:
-          ldpp_dout(this->dpp, 0) << "D4NFilterWriter::" << __func__
-                                 << "(): Transaction retry budget exhausted, ret="
-                                 << result.error << dendl;
-          return result.error < 0 ? result.error : -EAGAIN;
-
-        case TransactionStatus::failed:
-          ldpp_dout(this->dpp, 0) << "D4NFilterWriter::" << __func__
-                                 << "(): Failed to complete transaction, ret="
-                                 << result.error
-                                 << ", error=" << result.directory_error << dendl;
-          return result.error < 0 ? result.error : -EIO;
-        }
+        if (ret_txn < 0)
+          return ret_txn;
       }
 
       object->clear_instance();
@@ -4577,39 +4325,13 @@ int D4NFilterWriter::complete(size_t accounted_size, const std::string& etag,
                   dpp, y, attrs, true, dirty, std::ref(txn));
             });
 
-        switch (result.status) {
-        case TransactionStatus::success:
-          break;
-
-        case TransactionStatus::retryable_not_committed:
-          // This should normally be handled inside retry_transaction().
-          // If it reaches the caller, the transaction was not committed.
-          ldpp_dout(dpp, 0) << "D4NFilterWriter::" << __func__
-                            << "(): Transaction remains retryable, ret="
-                            << result.error
-                            << ", error=" << result.directory_error << dendl;
-          return result.error < 0 ? result.error : -EAGAIN;
-
-        case TransactionStatus::uncertain:
-          ldpp_dout(dpp, 0) << "D4NFilterWriter::" << __func__
-                            << "(): Transaction commit outcome is uncertain; error="
-                            << result.directory_error << dendl;
-          // FIXME: Do not blindly retry. The caller must resolve whether the commit took effect.
+        int ret_txn = handle_transaction_result(dpp, "D4NFilterWriter", __func__, result, [](const TransactionResult&) {
+          //FIXME: In case of uncertain, what should be done?
           return -EIO;
+        });
 
-        case TransactionStatus::retries_exhausted:
-          ldpp_dout(dpp, 0) << "D4NFilterWriter::" << __func__
-                            << "(): Transaction retry budget exhausted, ret="
-                            << result.error << dendl;
-          return result.error < 0 ? result.error : -EAGAIN;
-
-        case TransactionStatus::failed:
-          ldpp_dout(dpp, 0) << "D4NFilterWriter::" << __func__
-                            << "(): Failed to set head block directory entry, ret="
-                            << result.error
-                            << ", error=" << result.directory_error << dendl;
-          return result.error < 0 ? result.error : -EIO;
-        }
+        if (ret_txn < 0)
+          return ret_txn;
 
         attrs.erase(RGW_CACHE_ATTR_MTIME);
         attrs.erase(RGW_CACHE_ATTR_OBJECT_SIZE);
@@ -4836,42 +4558,15 @@ int D4NFilterMultipartUpload::complete(const DoutPrefixProvider *dpp,
             dpp, y, attrs, true, false, std::ref(txn));
       });
 
-  switch (result.status) {
-  case TransactionStatus::success:
-    break;
-
-  case TransactionStatus::retryable_not_committed:
-    // This should normally be handled inside retry_transaction().
-    // If it reaches the caller, the transaction was not committed.
-    ldpp_dout(dpp, 0) << "D4NFilterMultipartUpload::" << __func__
-                      << "(): Transaction remains retryable, ret="
-                      << result.error
-                      << ", error=" << result.directory_error << dendl;
-    return result.error < 0 ? result.error : -EAGAIN;
-
-  case TransactionStatus::uncertain:
-    ldpp_dout(dpp, 0) << "D4NFilterMultipartUpload::" << __func__
-                      << "(): Transaction commit outcome is uncertain; error="
-                      << result.directory_error << dendl;
-    // FIXME: Do not blindly retry. The caller must resolve whether the commit took effect.
+  int ret_txn = handle_transaction_result(dpp, "D4NFilterMultipartUpload", __func__, result, [](const TransactionResult&) {
+    //FIXME: In case of uncertain, what should be done?
     return -EIO;
+  });
 
-  case TransactionStatus::retries_exhausted:
-    ldpp_dout(dpp, 0) << "D4NFilterMultipartUpload::" << __func__
-                      << "(): Transaction retry budget exhausted, ret="
-                      << result.error << dendl;
-    return result.error < 0 ? result.error : -EAGAIN;
-
-  case TransactionStatus::failed:
-    ldpp_dout(dpp, 0) << "D4NFilterMultipartUpload::" << __func__
-                      << "(): BlockDirectory set method or transaction commit failed, ret="
-                      << result.error
-                      << ", error=" << result.directory_error << dendl;
-    return result.error < 0 ? result.error : -EIO;
-  }
+  if (ret_txn < 0)
+    return ret_txn;
 
   return 0;
-
 }
 
 } } // namespace rgw::sal

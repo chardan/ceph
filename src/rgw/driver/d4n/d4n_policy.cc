@@ -45,38 +45,13 @@ int LFUDAPolicy::age_sync(const DoutPrefixProvider* dpp, optional_yield y)
         return 0;
       });
 
-  switch (result.status)
-  {
-      case TransactionStatus::success:
-        break;
+  int ret_txn = handle_transaction_result(dpp, "LFUDAPolicy", __func__, result, [](const TransactionResult&) {
+    //FIXME: In case of uncertain, what should be done?
+    return -EIO;
+  });
 
-      case TransactionStatus::retryable_not_committed:
-        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
-                          << "(): Transaction remains retryable, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::uncertain:
-        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
-                          << "(): Transaction commit outcome is uncertain; error="
-                          << result.directory_error << dendl;
-        //FIXME: Do not blindly retry. The caller must resolve whether the commit took effect.
-        return -EIO;
-
-      case TransactionStatus::retries_exhausted:
-        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
-                          << "(): Transaction retry budget exhausted, ret="
-                          << result.error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::failed:
-        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
-                          << "(): Batch transaction failed, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EIO;
-  }
+  if (ret_txn < 0)
+    return ret_txn;
 
   age = synced_age;
   return 0;
@@ -141,38 +116,13 @@ int LFUDAPolicy::local_weight_sync(const DoutPrefixProvider* dpp, optional_yield
             std::ref(txn));
       });
 
-  switch (result.status)
-  {
-      case TransactionStatus::success:
-        break;
+  int ret_txn = handle_transaction_result(dpp, "LFUDAPolicy", __func__, result, [](const TransactionResult&) {
+    //FIXME: In case of uncertain, what should be done?
+    return -EIO;
+  });
 
-      case TransactionStatus::retryable_not_committed:
-        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
-                          << "(): Transaction remains retryable, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::uncertain:
-        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
-                          << "(): Transaction commit outcome is uncertain; error="
-                          << result.directory_error << dendl;
-        //FIXME: Do not blindly retry. The caller must resolve whether the commit took effect.
-        return -EIO;
-
-      case TransactionStatus::retries_exhausted:
-        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
-                          << "(): Transaction retry budget exhausted, ret="
-                          << result.error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::failed:
-        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
-                          << "(): Batch transaction failed, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EIO;
-  }
+  if (ret_txn < 0)
+    return ret_txn;
 
   weightSum = synced_weight_sum;
   postedSum = synced_posted_sum;
@@ -395,38 +345,14 @@ int LFUDAPolicy::init(CephContext* cct, const DoutPrefixProvider* dpp, asio::io_
             dpp, y, "lfuda", "age", std::to_string(age), std::ref(txn));
       });
 
-  switch (result.status)
-  {
-      case TransactionStatus::success:
-        break;
+  int ret_txn = handle_transaction_result(dpp, "LFUDAPolicy", __func__, result, [](const TransactionResult&) {
+    /* in case of uncertain, we should return and let the admin take care of the problem. 
+       there is a possiblity that directory is not responsive */
+    return -EIO;
+  });
 
-      case TransactionStatus::retryable_not_committed:
-        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
-                          << "(): Transaction remains retryable, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::uncertain:
-        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
-                          << "(): Transaction commit outcome is uncertain; error="
-                          << result.directory_error << dendl;
-        //FIXME: Do not blindly retry. The caller must resolve whether the commit took effect.
-        return -EIO;
-
-      case TransactionStatus::retries_exhausted:
-        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
-                          << "(): Transaction retry budget exhausted, ret="
-                          << result.error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::failed:
-        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
-                          << "(): Batch transaction failed, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EIO;
-  }
+  if (ret_txn < 0)
+    return ret_txn;
 
   asio::co_spawn(io_context.get_executor(),
         directory_sync(dpp, y), asio::detached);
@@ -1189,38 +1115,13 @@ int LFUDAPolicy::do_delete(const DoutPrefixProvider* dpp, LFUDAObjEntry* e, int 
           return delete_head_blocks(txn);
         });
 
-    switch (result.status)
-    {
-      case TransactionStatus::success:
-        break;
+    int ret_txn = handle_transaction_result(dpp, "LFUDAPolicy", __func__, result, [](const TransactionResult&) {
+      /* FIXME: in case of uncertain, we should skip the error */ 
+      return 0;
+    });
 
-      case TransactionStatus::retryable_not_committed:
-        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
-                          << "(): Transaction remains retryable, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::uncertain:
-        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
-                          << "(): Transaction commit outcome is uncertain; error="
-                          << result.directory_error << dendl;
-        //FIXME: Do not blindly retry. The caller must resolve whether the commit took effect.
-        return -EIO;
-
-      case TransactionStatus::retries_exhausted:
-        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
-                          << "(): Transaction retry budget exhausted, ret="
-                          << result.error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::failed:
-        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
-                          << "(): Batch transaction failed, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EIO;
-    }
+    if (ret_txn < 0)
+      return ret_txn;
 
     ret = cacheDriver->delete_data(dpp, e->key, y);
     if (ret == 0 || ret == -ENOENT) {
@@ -1345,40 +1246,15 @@ int LFUDAPolicy::do_delete(const DoutPrefixProvider* dpp, LFUDAObjEntry* e, int 
           return delete_head_blocks(txn);
         });
 
-    switch (result.status)
-    {
-      case TransactionStatus::success:
-        break;
+    int ret_txn = handle_transaction_result(dpp, "LFUDAPolicy", __func__, result, [](const TransactionResult&) {
+      /* In case of uncertain, we should return and let the caller decide */ 
+      return -EIO;
+    });
 
-      case TransactionStatus::retryable_not_committed:
-        // This should normally be handled inside retry_transaction().
-        // If it reaches the caller, the transaction was not committed.
-        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
-                          << "(): Transaction remains retryable, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::uncertain:
-        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
-                          << "(): Transaction commit outcome is uncertain; error="
-                          << result.directory_error << dendl;
-        //FIXME: Do not blindly retry. The caller must resolve whether the commit took effect.
-        return -EIO;
-
-      case TransactionStatus::retries_exhausted:
-        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
-                          << "(): Transaction retry budget exhausted, ret="
-                          << result.error << dendl;
-        return result.error < 0 ? result.error : -EAGAIN;
-
-      case TransactionStatus::failed:
-        ldpp_dout(dpp, 0) << "LFUDAPolicy::" << __func__
-                          << "(): Batch transaction failed, ret="
-                          << result.error
-                          << ", error=" << result.directory_error << dendl;
-        return result.error < 0 ? result.error : -EIO;
-    }
+    /* Deleting directory entries has failed. We should return 
+    otherwise we will endup with orphan directory entries */
+    if (ret_txn < 0)
+      return ret_txn;
 
   }
 

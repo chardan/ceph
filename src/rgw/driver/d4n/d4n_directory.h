@@ -465,6 +465,49 @@ TransactionResult retry_transaction(const DoutPrefixProvider* dpp, optional_yiel
   return {TransactionStatus::retries_exhausted, -EAGAIN, 0};
 }
 
+
+template <typename UncertainHandler>
+int handle_transaction_result(const DoutPrefixProvider* dpp, const char* component, const char* function, const TransactionResult& result, UncertainHandler&& handle_uncertain)
+{
+  switch (result.status) {
+  case TransactionStatus::success:
+    return 0;
+
+  case TransactionStatus::retryable_not_committed:
+    ldpp_dout(dpp, 0) << component << "::" << function
+                      << "(): Transaction remains retryable, ret="
+                      << result.error
+                      << ", error=" << result.directory_error << dendl;
+    return result.error < 0 ? result.error : -EAGAIN;
+
+  //Each caller should provide the method for uncertain case.
+  case TransactionStatus::uncertain:
+    ldpp_dout(dpp, 0) << component << "::" << function
+                      << "(): Transaction outcome is uncertain, error="
+                      << result.error
+                      << ", error=" << result.directory_error << dendl;
+
+    return std::invoke(std::forward<UncertainHandler>(handle_uncertain), result);
+
+  case TransactionStatus::retries_exhausted:
+    ldpp_dout(dpp, 0) << component << "::" << function
+                      << "(): Transaction retry budget exhausted, ret="
+                      << result.error
+                      << ", error=" << result.directory_error << dendl;
+    return result.error < 0 ? result.error : -EAGAIN;
+
+  case TransactionStatus::failed:
+    ldpp_dout(dpp, 0) << component << "::" << function
+                      << "(): Transaction failed, ret="
+                      << result.error
+                      << ", error=" << result.directory_error << dendl;
+    return result.error < 0 ? result.error : -EIO;
+  }
+
+  return -EIO;
+}
+
+
 class Directory {
 public:
     Directory() = default;
