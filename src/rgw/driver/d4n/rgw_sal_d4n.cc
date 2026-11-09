@@ -657,7 +657,7 @@ int D4NFilterBucket::list(const DoutPrefixProvider* dpp, ListParams& params, int
   cache_results.is_truncated = false;
 
   if (g_conf()->d4n_writecache_enabled) {
-    std::string cursor_or_start;
+    std::string cursor_or_start; //Empty to start
     std::string marker = params.marker.name;
     int num_objs = 0;
     std::string last_version;
@@ -1227,7 +1227,6 @@ int D4NFilterObject::set_obj_attrs(const DoutPrefixProvider* dpp, Attrs* setattr
   rgw::sal::Attrs attrs;
   std::string head_oid_in_cache;
   rgw::d4n::CacheBlock block;
-  enum class MissingHeadAction { NONE, BACKEND, NOOP };
   MissingHeadAction missing_head_action = MissingHeadAction::NONE;
   Attrs final_delattrs;
   auto result = retry_transaction(
@@ -1242,6 +1241,10 @@ int D4NFilterObject::set_obj_attrs(const DoutPrefixProvider* dpp, Attrs* setattr
         head_oid_in_cache.clear();
         block = rgw::d4n::CacheBlock{};
         int head_ret = check_head_exists_in_cache_get_oid(dpp, head_oid_in_cache, attrs, block, y, false, std::ref(txn));
+        if (head_ret == -ENOENT) {
+          ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__ << "(): check_head_exists_in_cache_get_oid head block does not exist in the cache " << dendl;
+          return -ENOENT;
+        }
         if (head_ret < 0) {
           ldpp_dout(dpp, 0) << "D4NFilterObject::" << __func__ << "(): check_head_exists_in_cache_get_oid failed with ret: " << head_ret << dendl;
           return head_ret;
@@ -1279,7 +1282,7 @@ int D4NFilterObject::set_obj_attrs(const DoutPrefixProvider* dpp, Attrs* setattr
 	     If it reads mutable or backend state outside the transaction, 
 	     that part may need to use the attributes returned by the transactional head lookup instead.
 	  */
-          Attrs currentattrs = this->get_attrs();
+          Attrs currentattrs = block.cacheObj.attrs;
           for (auto it = attempt_delattrs.begin(); it != attempt_delattrs.end();) {
       	    /* Ensure all delAttrs exist */
             auto current_it = std::find_if(currentattrs.begin(), currentattrs.end(), [&it](const auto& currentattr) {
@@ -1943,7 +1946,7 @@ int D4NFilterObject::set_data_block_dir_entries(const DoutPrefixProvider* dpp, o
           return ret;
         }
 
-  	//in case of a remote request, the flag in the directory should updated only by the local cache and/or the cleaning cache.
+  	//in case of a remote request, the flag in the directory should be updated only by the local cache and/or the cleaning cache.
         bool update_dirty_flag = !remote_cache_request;
 
         for (auto& block : blocks) {
@@ -2115,15 +2118,15 @@ int D4NFilterObject::check_head_exists_in_cache_get_oid(const DoutPrefixProvider
       }
     }
 
+    blk = block;
+
     // Check tombstone flag - object is logically deleted, return not found
     if (block.invalid && !this->is_remote_cache_request()) {
       ldpp_dout(dpp, 10) << "D4NFilterObject::" << __func__
                          << "(): object tombstoned (invalid), returning not found" << dendl;
       this->exists_in_cache = false;
-      return 0;
+      return -ENOENT;
     }
-
-    blk = block;
 
     // For remote cache GETs the version was already set from the x-rgw-cache-object-version
     // header by RGWGetObj::execute(). Preserve it so iterate() uses the correct version for

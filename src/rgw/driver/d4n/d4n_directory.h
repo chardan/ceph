@@ -201,17 +201,11 @@ class Lease {
     //
     // Idempotent: returns 0 if already acquired by same holder_id + token
     virtual int acquire(const DoutPrefixProvider* dpp,
-                        const std::string& resource_name,
-                        const std::string& holder_id,
-                        const std::string& token,
-                        uint64_t ttl_nanoseconds) = 0;
-
-    virtual int acquire(const DoutPrefixProvider* dpp,
     		        const std::string& resource_name,
 	                const std::string& holder_id,
             		const std::string& token,
             		uint64_t ttl_nanoseconds,
-            		Transaction& txn) = 0;
+    			std::optional<std::reference_wrapper<Transaction>> txn = std::nullopt) = 0;
 
     // Renew an existing lease
     //
@@ -389,7 +383,6 @@ struct TransactionResult {
 class Transaction {
 public:
   virtual ~Transaction() = default;
-
 
   virtual TransactionResult commit_with_outcome(const DoutPrefixProvider* dpp, optional_yield y)
   {

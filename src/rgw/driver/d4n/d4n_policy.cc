@@ -46,8 +46,7 @@ int LFUDAPolicy::age_sync(const DoutPrefixProvider* dpp, optional_yield y)
       });
 
   int ret_txn = handle_transaction_result(dpp, "LFUDAPolicy", __func__, result, [](const TransactionResult&) {
-    //FIXME: In case of uncertain, what should be done?
-    return -EIO;
+    return 0; //Values getting updated lazily, uncertain case shouldn't cause a failure.
   });
 
   if (ret_txn < 0)
@@ -61,6 +60,7 @@ int LFUDAPolicy::local_weight_sync(const DoutPrefixProvider* dpp, optional_yield
 {
   float synced_weight_sum = weightSum;
   float synced_posted_sum = postedSum;
+  const float entries_map_size = static_cast<float>(entries_map.size());
 
   auto result = retry_transaction(
       dpp,
@@ -68,7 +68,7 @@ int LFUDAPolicy::local_weight_sync(const DoutPrefixProvider* dpp, optional_yield
       [this, dpp]() {
         return this->driver->get_txn_factory()->create_transaction(dpp);
       },
-      [this, dpp, y, &synced_weight_sum, &synced_posted_sum](rgw::d4n::Transaction& txn) -> int {
+      [this, dpp, y, entries_map_size, &synced_weight_sum, &synced_posted_sum](rgw::d4n::Transaction& txn) -> int {
         synced_weight_sum = weightSum;
         synced_posted_sum = postedSum;
 
@@ -86,14 +86,14 @@ int LFUDAPolicy::local_weight_sync(const DoutPrefixProvider* dpp, optional_yield
               std::stof(fetched.at("minLocalWeights_sum")) /
               std::stof(fetched.at("minLocalWeights_size"));
 
-          float local_avg_weight = entries_map.size()
-              ? static_cast<float>(weightSum) / static_cast<float>(entries_map.size())
+          float local_avg_weight = entries_map_size > 0.0f
+              ? static_cast<float>(weightSum) / entries_map_size
               : 0.0f;
 
           if (local_avg_weight < min_avg_weight) {
             ret = dir.set_kv_multi(dpp, y, "lfuda", {
                 {"minLocalWeights_sum", std::to_string(weightSum)},
-                {"minLocalWeights_size", std::to_string(entries_map.size())},
+                {"minLocalWeights_size", std::to_string(entries_map_size)},
                 {"minLocalWeights_address",
                  dpp->get_cct()->_conf->rgw_d4n_local_rgw_address}
             }, std::ref(txn));
@@ -101,8 +101,9 @@ int LFUDAPolicy::local_weight_sync(const DoutPrefixProvider* dpp, optional_yield
             if (ret < 0) {
               return ret;
             }
+
+  	    synced_posted_sum = weightSum;
           } else {
-            synced_weight_sum = std::stof(fetched.at("minLocalWeights_sum"));
             synced_posted_sum = std::stof(fetched.at("minLocalWeights_sum")); // Preserved from original.
           }
         }
@@ -111,20 +112,19 @@ int LFUDAPolicy::local_weight_sync(const DoutPrefixProvider* dpp, optional_yield
             dpp, y,
             dpp->get_cct()->_conf->rgw_d4n_local_rgw_address, {
                 {"avgLocalWeight_sum", std::to_string(synced_weight_sum)},
-                {"avgLocalWeight_size", std::to_string(entries_map.size())}
+                {"avgLocalWeight_size", std::to_string(entries_map_size)}
             },
             std::ref(txn));
       });
 
   int ret_txn = handle_transaction_result(dpp, "LFUDAPolicy", __func__, result, [](const TransactionResult&) {
-    //FIXME: In case of uncertain, what should be done?
-    return -EIO;
+    //Valus are lazily updated so an uncertain commit should be abandoned rather than retried or returned EIO.
+    return 0;
   });
 
   if (ret_txn < 0)
     return ret_txn;
 
-  weightSum = synced_weight_sum;
   postedSum = synced_posted_sum;
 
   return 0;
@@ -1217,24 +1217,26 @@ int LFUDAPolicy::do_delete(const DoutPrefixProvider* dpp, LFUDAObjEntry* e, int 
 
             int get_ret = blockDir.get(dpp, y, &blk, std::ref(txn));
             if (get_ret == 0) {
-              if (blk.cacheObj.hostsList.size() <= 1) {
-                // Last copy: delete the entire block directory entry.
-                int del_ret = blockDir.del(dpp, y, &blk, std::ref(txn));
-                if (del_ret < 0) {
-                  ldpp_dout(dpp, 0) << "Failed to delete block directory entry for blockID="
+	      if (blk.cacheObj.hostsList.contains(local_addr)) {
+                if (blk.cacheObj.hostsList.size() <= 1) {
+                  // Last copy: delete the entire block directory entry.
+                  int del_ret = blockDir.del(dpp, y, &blk, std::ref(txn));
+                  if (del_ret < 0) {
+                    ldpp_dout(dpp, 0) << "Failed to delete block directory entry for blockID="
                                     << fst << ", ret=" << del_ret << dendl;
-                  return del_ret;
-                }
-              } else if (blk.cacheObj.hostsList.contains(local_addr)) {
-                // Multiple copies: remove this host from the entry.
-                int remove_ret = blockDir.remove_host(
-                    dpp, y, &blk, local_addr, std::ref(txn));
-                if (remove_ret < 0) {
-                  ldpp_dout(dpp, 0) << "Failed to remove host from block directory entry for blockID="
+                    return del_ret;
+                  }
+                } else if (blk.cacheObj.hostsList.contains(local_addr)) {
+                  // Multiple copies: remove this host from the entry.
+                  int remove_ret = blockDir.remove_host(
+                      dpp, y, &blk, local_addr, std::ref(txn));
+                  if (remove_ret < 0) {
+                    ldpp_dout(dpp, 0) << "Failed to remove host from block directory entry for blockID="
                                     << fst << ", ret=" << remove_ret << dendl;
-                  return remove_ret;
+                    return remove_ret;
+                  }
                 }
-              }
+	      }
             } else if (get_ret != -ENOENT) {
               return get_ret;
             }
